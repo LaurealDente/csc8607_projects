@@ -83,19 +83,28 @@ Listez précisément les opérations et paramètres (valeurs **fixes**) :
 **D6.** Quels **prétraitements** avez-vous appliqués (opérations + **paramètres exacts**) et **pourquoi** ?  
 
 Les prétraitements appliqués au dataset sont une convertion de toutes les images en format RGB car 2% sont stockées en format L.
-La deuxième transformation est la conversion en tensor. Les valeurs des tensors sont comprises entre 0 et 1, le calcul de la moyenne et de l'écart type permet de normaliser ces tensors.
+La deuxième transformation est la conversion en tensor. Les valeurs des tensors sont comprises entre 0 et 1, le calcul de la moyenne et de l'écart type permet de normaliser ces tensors. La normalisation va permettre d'avoir des entrées sur des échelles similaires. Elle accélère la convergence du modèle et stabilise les calculs numériques.
 
 **D7.** Les prétraitements diffèrent-ils entre train/val/test (ils ne devraient pas, sauf recadrage non aléatoire en val/test) ?
+
+Les prétraitrements sont similaires entre les trois datasets, la normalisation est calculée sur les moyennes et les ecarts types du datset train afin de ne pas faire de data leaking.
 
 ### 1.4 Augmentation de données — _train uniquement_
 
 - Liste des **augmentations** (opérations + **paramètres** et **probabilités**) :
-  - ex. Flip horizontal p=0.5, RandomResizedCrop scale=__, ratio=__ …
-  - Audio : time/freq masking (taille, nb masques) …
-  - Séries : jitter amplitude=__, scaling=__ …
+  - Flip horizontal p=0.5, RandomResizedCrop scale=100%, ratio=1 
 
 **D8.** Quelles **augmentations** avez-vous appliquées (paramètres précis) et **pourquoi** ?  
+
+Afin d'augmenter la volumétrie des données d'entraînement, j'ai utilisé le random flip, le random crop et le color jitter.
+Le random flip est défini à 0.5 dans le code pour retourner aléatoirement l'image lors de l'entraînement avec une probabilité d'1/2. Il est possible de l'utiliser sur les images de notre dataset car le modèle ne se focalise pas sur des textes ou équivalents nécessitant un sens défini.
+Le random crop permet de ne prendre qu'une partie de l'image de base pour entraîner le modèle sur des centrages différents. Ici les images sont en format 64x64 et le crop est réglé à 64x64, ça ne modifiera pas la photo.
+Le color jitter permet d'influencer les paramètres de la photo représentant des contextes photographiques pouvant être changeants. La luminosité, le contrast, la saturation et la teinte de manière aléatoire entre x1.2 et x0.8 car tous les paramètres sont réglés à 0.2. 
+
+
 **D9.** Les augmentations **conservent-elles les labels** ? Justifiez pour chaque transformation retenue.
+
+Les labels sont conservés pour chacune des augmentations, en effet ces modifications s'appliqueront sur l'image récupérées de base lors du DataLoader. Au cours de cet appel 
 
 ### 1.5 Sanity-checks
 

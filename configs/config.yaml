@@ -1,13 +1,19 @@
 # Fichier de configuration générique (à adapter au projet)
 dataset:
-  name: TODO                # ex: "CIFAR10", "IMDB", ...
+  name: imagenet                # ex: "CIFAR10", "IMDB", ...
   root: "zh-plus/tiny-imagenet"            # chemin local pour les données
   split:                    # optionnel : noms/tailles de splits
-    train: 0.9
-    val: TODO
-    test: 0.1
+    train:
+      p: 0.9
+      chemin: csc8607_projects/data/preprocessed_dataset_train.pt
+    val: 
+      p: 0
+      chemin: csc8607_projects/data/preprocessed_dataset_valid.pt
+    test: 
+      p: 0.1
+      chemin: csc8607_projects/data/preprocessed_dataset_test.pt
   download: true            # si supporté
-  num_workers: 4
+  num_workers: 8
   shuffle: true
   columns:
     label: label
@@ -15,16 +21,19 @@ dataset:
 
 preprocess:
   # transformations de base (ex: resize, normalize)
-  resize:                   # ex: [32, 32] ou null
-  normalize:                # ex: {"mean": [0.5,0.5,0.5], "std":[0.5,0.5,0.5]} ou null
+  resize: null                   # ex: [32, 32] ou null
+  normalize: 
   text_tokenizer:           # pour NLP : nom ou paramètres, sinon null
 
 augment:
   # data augmentation (laisser null si non utilisée)
-  random_flip:              # true/false
-  random_crop:              # paramètres ou null
-  color_jitter:             # paramètres ou null
-  spec_augment:             # pour audio : paramètres ou null
+  random_flip: true
+  random_crop:  [64, 64]
+  color_jitter:
+    brightness: 0.2
+    contrast: 0.2
+    saturation: 0.2
+    hue: 0.2
 
 model:
   type: TODO                # ex: "resnet18", "mlp", "lstm", ...

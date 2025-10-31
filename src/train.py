@@ -12,18 +12,25 @@ Exigences minimales :
 """
 
 import argparse
+import os
+from torch.utils.data import DataLoader
+from torchvision import transforms
+from torchvision.datasets import ImageNet
+ 
+
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, required=True)
+    parser.add_argument("--config", type=str, required=False, default="config/config.yaml")
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--overfit_small", action="store_true")
     parser.add_argument("--max_epochs", type=int, default=None)
     parser.add_argument("--max_steps", type=int, default=None)
-    # Ajoutez d'autres arguments si nécessaire (batch_size, lr, etc.)
     args = parser.parse_args()
-    # À implémenter par l'étudiant·e :
-    raise NotImplementedError("train.main doit être implémenté par l'étudiant·e.")
+
+    # train_dataset = ImageNet(root=args.config[""], split="train", transform=transform_features)
+
+    # train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=os.cpu_count(), pin_memory=True)
 
 if __name__ == "__main__":
     main()

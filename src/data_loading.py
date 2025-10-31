@@ -54,7 +54,7 @@ def get_dataloaders(config: dict):
     try:
         tiny_imagenet = datasets.load_dataset(config["dataset"]["root"])
         
-        split_dataset = tiny_imagenet["train"].train_test_split(test_size=config["dataset"]["split"]["test"], 
+        split_dataset = tiny_imagenet["train"].train_test_split(test_size=config["dataset"]["split"]["test"]["p"], 
                                             seed=config["train"]["seed"], 
                                             stratify_by_column=config["dataset"]["columns"]["label"])
         
