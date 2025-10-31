@@ -65,9 +65,9 @@ def get_dataloaders(config: dict):
         })
 
         
-        log_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../runs")
+        # log_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../runs")
         
-        writer = SummaryWriter(log_dir=log_dir)
+        # writer = SummaryWriter(log_dir=log_dir)
 
         particularities = {}
 
@@ -78,11 +78,13 @@ def get_dataloaders(config: dict):
             count_distribution = Counter(counts)
             label_dist_dict = {str(k): v for k, v in count_distribution.items()}
             
-            writer.add_scalars(f"label_distribution/{split_name}", label_dist_dict, global_step=0)
+            # writer.add_scalars(f"label_distribution/{split_name}", label_dist_dict, global_step=0)
             
             particularities[split_name] = detect_dataset_particularities(dataset)
 
-        writer.close()
+        # writer.close()
+
+        
 
         return final_datasets, particularities
     
