@@ -10,10 +10,10 @@
 
 ## 0) Informations générales
 
-- **Étudiant·e** : _Nom, Prénom_
-- **Projet** : _Intitulé (dataset × modèle)_
+- **Étudiant·e** : _Lauret, Alexandre_
+- **Projet** : _Projet 23 (tiny imagenet × Blocs résiduels + Dropout2d dans les bloc)_
 - **Dépôt Git** : _URL publique_
-- **Environnement** : `python == ...`, `torch == ...`, `cuda == ...`  
+- **Environnement** : `python == 3.10.18`, `torch == 2.5.1`, `cuda == 12.0.140`  
 - **Commandes utilisées** :
   - Entraînement : `python -m src.train --config configs/config.yaml`
   - LR finder : `python -m src.lr_finder --config configs/config.yaml`
@@ -25,13 +25,17 @@
 ## 1) Données
 
 ### 1.1 Description du dataset
-- **Source** (lien) :
-- **Type d’entrée** (image / texte / audio / séries) :
-- **Tâche** (multiclasses, multi-label, régression) :
-- **Dimensions d’entrée attendues** (`meta["input_shape"]`) :
-- **Nombre de classes** (`meta["num_classes"]`) :
+- **Source** (lien) : https://huggingface.co/datasets/zh-plus/tiny-imagenet
+- **Type d’entrée** (image / texte / audio / séries) : images
+- **Tâche** (multiclasses, multi-label, régression) : classification multiclasses
+- **Dimensions d’entrée attendues** (`meta["input_shape"]`) : 3x64x64
+- **Nombre de classes** (`meta["num_classes"]`) : 200
 
 **D1.** Quel dataset utilisez-vous ? D’où provient-il et quel est son format (dimensions, type d’entrée) ?
+
+Le dataset que je vais utiliser est zh-plus/tiny-imagenet stocké sur HuggingFace Datasets.
+Celui-ci est composé de 110,000 lignes et de 2 colonnes. La première colonne, nommée "image", sont les images. La deuxième colonne, nommée label, est composée des labels de chacune de ces images.
+
 
 ### 1.2 Splits et statistiques
 
@@ -41,11 +45,34 @@
 | Val   |           |                                                        |
 | Test  |           |                                                        |
 
-**D2.** Donnez la taille de chaque split et le nombre de classes.  
+**D2.** Donnez la taille de chaque split et le nombre de classes. 
+
+Le dataset est composé de deux split, le premier est celui d'entraînement (train), le deuxième est le split de validation (valid). Dans chacun des deux splits, nous pouvons trouver l'ensemble des 200 classes.
+
 **D3.** Si vous avez créé un split (ex. validation), expliquez **comment** (stratification, ratio, seed).
 
+Le dataset proposait déjà deux datasets un train et un de validation. J'ai créé un split de test à partir du dataset de train.
+Pour cela, j'ai utilisé un ratio de 0.1 afin d'avoir un même nombre de valeurs entre le split de test et de validation qui ont 1000 lignes.
+Le split de train a alors 9000 lignes restantes pour l'entraînement.
+
+Pour la stratification, j'ai ciblé les valeurs de la colonne label afin d'équilibrer les trois splits. Ceci permettra un apprentissage de qualité et une meilleure évaluation du modèle.
+
+La seed utilisée est stockée dans le fichier de configuration la variable par défaut était 42, valeur que j'ai utilisée.
+
+
 **D4.** Donnez la **distribution des classes** (graphique ou tableau) et commentez en 2–3 lignes l’impact potentiel sur l’entraînement.  
+
+Grâce à la répartition égale de chaque classe (même nombre de label), nous allons pouvoir entraîner chacune des classes équitablement.
+Cela permettra d'avoir une meilleure précision sur la matrice de confusion.
+
+
 **D5.** Mentionnez toute particularité détectée (tailles variées, longueurs variables, multi-labels, etc.).
+
+Une particularité est détectée après traitement. Les tailles des images sont égales avec un format de 64x64 avec 3 channel (RGB). Sauf 2% des images qui n'ont qu'un seul canal (L).
+
+Les longeurs de variables sont donc aussi similaires.
+Les labels sont tous des entiers entre 0 et 199, il n'y a aucun multi labels.
+
 
 ### 1.3 Prétraitements (preprocessing) — _appliqués à train/val/test_
 

@@ -1,14 +1,17 @@
 # Fichier de configuration générique (à adapter au projet)
 dataset:
   name: TODO                # ex: "CIFAR10", "IMDB", ...
-  root: "./data"            # chemin local pour les données
+  root: "zh-plus/tiny-imagenet"            # chemin local pour les données
   split:                    # optionnel : noms/tailles de splits
-    train: TODO
+    train: 0.9
     val: TODO
-    test: TODO
+    test: 0.1
   download: true            # si supporté
   num_workers: 4
   shuffle: true
+  columns:
+    label: label
+    image : image
 
 preprocess:
   # transformations de base (ex: resize, normalize)
