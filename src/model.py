@@ -5,15 +5,26 @@ Signature imposée :
 build_model(config: dict) -> torch.nn.Module
 """
 
-import os
+from torchvision import transforms
 import yaml
+import os
+
 
 def build_model(config: dict):
     """Construit et retourne un nn.Module selon la config. À implémenter."""
-        
+    model = []
+    if config["augment"]["random_flip"]:
+        model.append(model.RandomHorizontalFlip(p=0.5))
 
-    raise NotImplementedError("build_model doit être implémentée par l'étudiant·e.")
+    if config["augment"]["random_crop"] is not None:
+        model.append(model.RandomResizedCrop(size=config["augment"]["random_crop"]))
+    
+    if config["augment"]["color_jitter"] is not None:
+        model.append(model.ColorJitter(**config["augment"]["color_jitter"]))
 
+
+    augmentation_pipeline = transforms.Compose(model)
+    return augmentation_pipeline
 
 
 if __name__ == "__main__":

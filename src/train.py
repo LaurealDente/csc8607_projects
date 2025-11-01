@@ -13,10 +13,25 @@ Exigences minimales :
 
 import argparse
 import os
-from torch.utils.data import DataLoader
+from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
-from torchvision.datasets import ImageNet
- 
+import torch
+
+class AugmentationDataset(Dataset):
+    def __init__(self, data_path, column, transform=None):
+        data = torch.load(data_path)
+        self.images = data[column]
+        self.transform = transform
+        
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, i):
+        image = self.images[i]
+        
+        if self.transform:
+            image = self.transform(image)
+        return image
 
 
 def main():
@@ -27,6 +42,17 @@ def main():
     parser.add_argument("--max_epochs", type=int, default=None)
     parser.add_argument("--max_steps", type=int, default=None)
     args = parser.parse_args()
+
+    train_augmente = AugmentationDataset(data_path=config["dataset"]["split"]["train"]["chemin"], 
+                                         column=config["dataset"]["columns"]["image"], 
+                                         transform=augmentation_pipeline)
+
+    train_loader = DataLoader(dataset=train_augmente,
+        batch_size=config["train"]["batch_size"],
+        shuffle=train_augmente,
+        num_workers=config["dataset"]["num_workers"],
+        pin_memory=True
+    )
 
     # train_dataset = ImageNet(root=args.config[""], split="train", transform=transform_features)
 

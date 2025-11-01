@@ -4,12 +4,13 @@ Pré-traitements.
 Signature imposée :
 get_preprocess_transforms(config: dict) -> objet/transform callable
 """
-import data_loading
 import os
 import yaml
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 import torch
+import data_loading
+
 
 def preprocess_dataset(list_pil_img, mean=None, std=None):
     base_transforms = transforms.Compose([
@@ -32,7 +33,7 @@ def preprocess_dataset(list_pil_img, mean=None, std=None):
 def get_preprocess_transforms(config: dict):
     """Retourne les transformations de pré-traitement. À implémenter."""
     
-    final_datasets, particularities  = data_loading.get_dataloaders(config)
+    final_datasets, particularities  = data_loading.get_data(config)
     normalized_datasets = []
 
     for dataset in final_datasets :
@@ -51,16 +52,13 @@ def get_preprocess_transforms(config: dict):
             writer.close()
         else :
             normalized, mean, std = preprocess_dataset(final_datasets[dataset]["image"], mean, std)
+
         
         list_of_labels = final_datasets[dataset]['label'] 
         labels_tensor = torch.tensor(list_of_labels, dtype=torch.int64)
-
-        dataset_to_save = {
-            config["dataset"]["columns"]["image"]: normalized,
-            config["dataset"]["columns"]["label"]: labels_tensor 
-        }
-        torch.save(dataset_to_save, "csc8607_projects/data/preprocessed_dataset_" + dataset + ".pt")
+        
         normalized_datasets.append(normalized)
+        data_loading.save_dataset(normalized, labels_tensor, dataset)
 
     return normalized_datasets
 

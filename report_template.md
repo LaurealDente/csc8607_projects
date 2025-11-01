@@ -92,19 +92,22 @@ Les prétraitrements sont similaires entre les trois datasets, la normalisation 
 ### 1.4 Augmentation de données — _train uniquement_
 
 - Liste des **augmentations** (opérations + **paramètres** et **probabilités**) :
-  - Flip horizontal p=0.5, RandomResizedCrop scale=100%, ratio=1 
+  - Flip horizontal p=0.5, RandomResizedCrop size=64x64, scale=80-100%, ratio=1 
 
 **D8.** Quelles **augmentations** avez-vous appliquées (paramètres précis) et **pourquoi** ?  
 
 Afin d'augmenter la volumétrie des données d'entraînement, j'ai utilisé le random flip, le random crop et le color jitter.
 Le random flip est défini à 0.5 dans le code pour retourner aléatoirement l'image lors de l'entraînement avec une probabilité d'1/2. Il est possible de l'utiliser sur les images de notre dataset car le modèle ne se focalise pas sur des textes ou équivalents nécessitant un sens défini.
-Le random crop permet de ne prendre qu'une partie de l'image de base pour entraîner le modèle sur des centrages différents. Ici les images sont en format 64x64 et le crop est réglé à 64x64, ça ne modifiera pas la photo.
+Le random crop permet de ne prendre qu'une partie de l'image de base pour entraîner le modèle sur des centrages différents. Ici les images sont cropées au maximum de 20% qui va permettre d'éviter la perte complète de l'objet examiné.
 Le color jitter permet d'influencer les paramètres de la photo représentant des contextes photographiques pouvant être changeants. La luminosité, le contrast, la saturation et la teinte de manière aléatoire entre x1.2 et x0.8 car tous les paramètres sont réglés à 0.2. 
 
 
 **D9.** Les augmentations **conservent-elles les labels** ? Justifiez pour chaque transformation retenue.
 
-Les labels sont conservés pour chacune des augmentations, en effet ces modifications s'appliqueront sur l'image récupérées de base lors du DataLoader. Au cours de cet appel 
+Les labels sont conservés pour chacune des augmentations, en effet ces modifications s'appliqueront sur l'image récupérées de base lors du DataLoader. Au cours de l'entraînement, DataLoader appel _getitem() qui modifiera les images sur la base des probabilités citées auparavant.
+Le randomhorizontalfip retourne une image, il ne modifie pas le label hormis lorsque ce sont des textes où nous perdons de l'information. Ici il est applicable sans perte la classification ne se repose pas sur des images avec des textes.
+Le color jitter modifie les paramètres de l'image mais celle-ci sont toujours autant reconnaissables, elles gardent leurs caractéristiques principales. Les labels sont gardés.
+Le random crop pourrait entraîner une perte d'information sur l'image et faire perdre la logique image-label, cependant ici le crop est de 80 à 100% ce qui garde la plus grande partie de l'image et évite de perdre totalement l'objet étudié.
 
 ### 1.5 Sanity-checks
 
@@ -112,8 +115,14 @@ Les labels sont conservés pour chacune des augmentations, en effet ces modifica
 
 > _Insérer ici 2–3 captures illustrant les données après transformation._
 
-**D10.** Montrez 2–3 exemples et commentez brièvement.  
+**D10.** Montrez 2–3 exemples et commentez brièvement. 
+
+
+
 **D11.** Donnez la **forme exacte** d’un batch train (ex. `(batch, C, H, W)` ou `(batch, seq_len)`), et vérifiez la cohérence avec `meta["input_shape"]`.
+[32, 3, 64, 64]
+
+
 
 ---
 
@@ -122,23 +131,24 @@ Les labels sont conservés pour chacune des augmentations, en effet ces modifica
 ### 2.1 Baselines
 
 **M0.**
-- **Classe majoritaire** — Métrique : `_____` → score = `_____`
-- **Prédiction aléatoire uniforme** — Métrique : `_____` → score = `_____`  
+- **Classe majoritaire** — Métrique : `Accuracy` → score = `0.5%`
+- **Prédiction aléatoire uniforme** — Métrique : `Accuracy` → score = `0.5%`  
 _Commentez en 2 lignes ce que ces chiffres impliquent._
+La classe majoritaire serait un modèle qui prédit toujours une seule classe, un seul label, celui de la classe majoritaire. Le score est de 0.5% car la classe majoritaire est composée de 500 données sur 100,000 existantes (500/100,000 = 0.005).
+
+La prédiction aléatoire uniforme a autant de chance de prédire chacune des classes. Sachant que toutes les classes ont la même probabilité de 0.005 alors la même accuracy est calculée que pour la méthode la classe majoritaire.
 
 ### 2.2 Architecture implémentée
 
 - **Description couche par couche** (ordre exact, tailles, activations, normalisations, poolings, résiduels, etc.) :
-  - Input → …
-  - Stage 1 (répéter N₁ fois) : …
+  - Input → (32, 3, 64, 64)
+  - Stage 1 (répéter N₁ fois) : 
   - Stage 2 (répéter N₂ fois) : …
   - Stage 3 (répéter N₃ fois) : …
   - Tête (GAP / linéaire) → logits (dimension = nb classes)
 
 - **Loss function** :
   - Multi-classe : CrossEntropyLoss
-  - Multi-label : BCEWithLogitsLoss
-  - (autre, si votre tâche l’impose)
 
 - **Sortie du modèle** : forme = __(batch_size, num_classes)__ (ou __(batch_size, num_attributes)__)
 

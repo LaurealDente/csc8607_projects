@@ -22,13 +22,16 @@ dataset:
 preprocess:
   # transformations de base (ex: resize, normalize)
   resize: null                   # ex: [32, 32] ou null
-  normalize: 
-  text_tokenizer:           # pour NLP : nom ou paramètres, sinon null
+  normalize: True
+  text_tokenizer: null         # pour NLP : nom ou paramètres, sinon null
 
 augment:
   # data augmentation (laisser null si non utilisée)
   random_flip: true
-  random_crop:  [64, 64]
+  random_crop:  
+    size: [64, 64]
+    scale: [0.8,1.0]
+    ratio: [1.0,1.0]
   color_jitter:
     brightness: 0.2
     contrast: 0.2
@@ -38,7 +41,7 @@ augment:
 model:
   type: TODO                # ex: "resnet18", "mlp", "lstm", ...
   num_classes: TODO
-  input_shape:              # ex: [3, 32, 32] ou null
+  input_shape: [32,64,64]             # ex: [3, 32, 32] ou null
   hidden_sizes:             # ex: [256, 128] ou null
   activation: relu          # ex: relu, gelu, tanh...
   dropout: 0.0              # ex: 0.0–0.5
@@ -53,8 +56,8 @@ model:
 
 train:
   seed: 42
-  device: auto              # "cpu", "cuda", ou "auto"
-  batch_size: 64
+  device: cuda              # "cpu", "cuda", ou "auto"
+  batch_size: 32
   epochs: 10
   max_steps: null           # entier ou null
   overfit_small: false      # true pour sur-apprendre sur un petit échantillon
