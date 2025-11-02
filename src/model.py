@@ -5,26 +5,140 @@ Signature imposée :
 build_model(config: dict) -> torch.nn.Module
 """
 
-from torchvision import transforms
+from torch import nn
 import yaml
 import os
+
+class ResidualBlock(nn.Module):
+    """
+    Implémente un bloc résiduel standard avec deux convolutions 3x3.
+    Gère la projection de la connexion résiduelle si les dimensions changent.
+    """
+    def __init__(self, in_channels, out_channels, stride=1, dropout_p=0.1, fonction_activation=nn.ReLU, fonction = "relu", residual = True, batch_norm = True):
+        super(ResidualBlock, self).__init__()
+
+        self.residual = residual
+
+        # --- Branche principale (Main Path) ---
+        # Séquence de couches qui transforment les données
+
+        layers = [nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)]
+        if batch_norm :
+            layers.append(nn.BatchNorm2d(out_channels))
+        layers.append(fonction_activation(inplace=True if fonction == "relu" else False))
+        layers.append(nn.Dropout2d(p=dropout_p))
+        layers.append(nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False))
+        if batch_norm :
+            layers.append(nn.BatchNorm2d(out_channels))
+
+        self.main_path = nn.Sequential(*layers)
+
+        # --- Connexion résiduelle (Shortcut / Skip Connection) ---
+        self.shortcut = nn.Sequential() # Par défaut, ne fait rien (fonction identité)
+        
+        # Si les dimensions changent (stride > 1 ou nb de canaux différent),
+        # on crée une projection avec une convolution 1x1 pour adapter.
+        if stride != 1 or in_channels != out_channels:
+            layers = [nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False)]
+            if batch_norm :
+                layers.append(nn.BatchNorm2d(out_channels))
+            self.shortcut = nn.Sequential(*layers)
+        
+        # L'activation ReLU finale est appliquée après l'addition
+        self.final_relu = fonction_activation(inplace=True if fonction == "relu" else False)
+
+    def forward(self, x):
+        # Si la connexion résiduelle est désactivée seule la sortie de la branch est renvoyée
+        if not self.residual:
+            return self.final_relu(self.main_path(x))
+
+        # L'entrée est mémorisée pour la connexion résiduelle
+        residual_out = self.shortcut(x)
+        
+        # On calcule la sortie de la branche principale
+        out = self.main_path(x)
+        
+        # On additionne la sortie de la branche principale et la connexion résiduelle
+        out += residual_out
+        
+        # On applique l'activation finale
+        out = self.final_relu(out)
+        
+        return out
+
+
+class ResNet(nn.Module):
+    """
+    Assemble le réseau ResNet complet en utilisant les ResidualBlock.
+    """
+    def __init__(self, B1, B2, B3, dropout_p=0.1, num_classes=200,
+                 residual=True, batch_norm=True, fonction="relu"):
+        super(ResNet, self).__init__()
+        
+        fonction_activation = {
+            "relu": nn.ReLU,
+            "leaky_relu": nn.LeakyReLU,
+            "elu": nn.ELU,
+            "gelu": nn.GELU,
+            "selu": nn.SELU
+        }
+
+        fonction_activation = fonction_activation[fonction]
+
+        # Garde en mémoire le nombre de canaux attendus en entrée du prochain stage
+        self.in_channels = 64
+
+        # --- Couche initiale ---
+        layers = [nn.Conv2d(3, self.in_channels, kernel_size=3, stride=1, padding=1, bias=False),]
+        if batch_norm:
+            layers.append(nn.BatchNorm2d(self.in_channels))
+        layers.append(fonction_activation(inplace=True if fonction == "relu" else False))
+
+        self.initiale = nn.Sequential(*layers)
+
+        # --- Stages de blocs résiduels ---
+        self.stage1 = self._make_stage(out_channels=64, num_blocks=B1, stride=1, dropout_p=dropout_p, fonction_activation = fonction_activation, fonction = fonction, residual=residual, batch_norm = batch_norm)
+        self.stage2 = self._make_stage(out_channels=128, num_blocks=B2, stride=2, dropout_p=dropout_p, fonction_activation = fonction_activation, fonction = fonction, residual=residual, batch_norm = batch_norm)
+        self.stage3 = self._make_stage(out_channels=256, num_blocks=B3, stride=2, dropout_p=dropout_p, fonction_activation = fonction_activation, fonction = fonction, residual=residual, batch_norm = batch_norm)
+
+        # --- Tête de classification ---
+        self.head = nn.Sequential(
+            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Flatten(),
+            nn.Linear(256, num_classes)
+        )
+
+    def _make_stage(self, out_channels, num_blocks, stride, dropout_p, fonction_activation=nn.ReLU, fonction = "relu", residual = True, batch_norm = True):
+        """
+        Fonction utilitaire qui construit un stage en empilant num_blocks de ResidualBlock.
+        """
+        # Le premier bloc du stage a le stride donné, les autres ont un stride de 1
+        strides = [stride] + [1] * (num_blocks - 1)
+        layers = []
+        for s in strides:
+            layers.append(ResidualBlock(self.in_channels, out_channels, stride=s, dropout_p=dropout_p, fonction_activation = fonction_activation, fonction = fonction, residual = residual, batch_norm = batch_norm))
+            # Le nombre de canaux d'entrée pour le prochain bloc est le nombre de canaux de sortie actuel
+            self.in_channels = out_channels
+        
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        x = self.initiale(x)
+        x = self.stage1(x)
+        x = self.stage2(x)
+        x = self.stage3(x)
+        x = self.head(x)
+        return x
 
 
 def build_model(config: dict):
     """Construit et retourne un nn.Module selon la config. À implémenter."""
-    model = []
-    if config["augment"]["random_flip"]:
-        model.append(model.RandomHorizontalFlip(p=0.5))
-
-    if config["augment"]["random_crop"] is not None:
-        model.append(model.RandomResizedCrop(size=config["augment"]["random_crop"]))
+    modele = ResNet(*config["model"]["residual_blocks"], config["model"]["dropout"],
+                    config["model"]["num_classes"], config["model"]["residual"],
+                    config["model"]["batch_norm"], fonction=config["model"]["activation"])
+    return modele
     
-    if config["augment"]["color_jitter"] is not None:
-        model.append(model.ColorJitter(**config["augment"]["color_jitter"]))
 
-
-    augmentation_pipeline = transforms.Compose(model)
-    return augmentation_pipeline
 
 
 if __name__ == "__main__":
@@ -32,4 +146,6 @@ if __name__ == "__main__":
     config_path = os.path.join(script_dir, "../configs/config.yaml")
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
-    build_model(config)
+    resnet = build_model(config)
+    print(resnet)
+    print()
