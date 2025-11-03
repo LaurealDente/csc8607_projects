@@ -12,9 +12,11 @@ import datasets
 import yaml
 import os
 from collections import Counter
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.data import DataLoader, Dataset
 import numpy as np
 import torch
+import augmentation
+
 
 def detect_dataset_particularities(dataset):
     sizes = set()
@@ -104,44 +106,24 @@ def get_data(config: dict):
 
 
 
-
-def detect_dataset_particularities(dataset):
-    sizes = set()
-    labels = set()
-    multi_labels_detected = False
-    channels = set()
-
-    for sample in dataset:
-        
-        image = sample['image']
-        label = sample['label']
-        sizes.add(image.size)
-
-        channels.add(image.mode)
-
-        if isinstance(label, (list, tuple)):
-            multi_labels_detected = True
-            labels.update(label)
-        else:
-            labels.add(label)
-
-    particularities = {}
-    particularities['unique_image_sizes'] = sizes
-    particularities['unique_labels'] = labels
-    particularities['multi_labels_detected'] = multi_labels_detected
-    particularities['different_image_sizes'] = (len(sizes) > 1)
-    particularities['unique_image_modes'] = channels
-
-    return particularities
-
-
-def get_dataloaders(config: dict):
+def get_dataloaders(dataset, augmentation_pipeline, config: dict):
     """
     Crée et retourne les DataLoaders d'entraînement/validation/test et des métadonnées.
     """
-    raise NotImplementedError("get_dataloaders doit être implémentée par l'étudiant·e.")
-
-
+    if dataset == "train" :
+        data = augmentation.AugmentationDataset(data_path=config["dataset"]["split"]["train"]["chemin"], 
+                                                transform=augmentation_pipeline)
+        data_loader = DataLoader(data, 
+                                batch_size=config["train"]["batch_size"], 
+                                shuffle=True, 
+                                num_workers=config["dataset"]["num_workers"])
+    else :
+        data = augmentation.AugmentationDataset(data_path=config["dataset"]["split"]["train"]["chemin"])
+        data_loader = DataLoader(data, 
+                                batch_size=config["train"]["batch_size"], 
+                                shuffle=False, 
+                                num_workers=config["dataset"]["num_workers"])
+    return data_loader
     
 if __name__ == "__main__":
         

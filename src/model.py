@@ -9,13 +9,13 @@ from torch import nn
 import yaml
 import os
 
-class ResidualBlock(nn.Module):
+class BlocResiduel(nn.Module):
     """
     Implémente un bloc résiduel standard avec deux convolutions 3x3.
     Gère la projection de la connexion résiduelle si les dimensions changent.
     """
     def __init__(self, in_channels, out_channels, stride=1, dropout_p=0.1, fonction_activation=nn.ReLU, fonction = "relu", residual = True, batch_norm = True):
-        super(ResidualBlock, self).__init__()
+        super(BlocResiduel, self).__init__()
 
         self.residual = residual
 
@@ -69,7 +69,7 @@ class ResidualBlock(nn.Module):
 
 class ResNet(nn.Module):
     """
-    Assemble le réseau ResNet complet en utilisant les ResidualBlock.
+    Assemble le réseau ResNet complet en utilisant les BlocResiduel.
     """
     def __init__(self, B1, B2, B3, dropout_p=0.1, num_classes=200,
                  residual=True, batch_norm=True, fonction="relu"):
@@ -110,13 +110,13 @@ class ResNet(nn.Module):
 
     def _make_stage(self, out_channels, num_blocks, stride, dropout_p, fonction_activation=nn.ReLU, fonction = "relu", residual = True, batch_norm = True):
         """
-        Fonction utilitaire qui construit un stage en empilant num_blocks de ResidualBlock.
+        Fonction utilitaire qui construit un stage en empilant num_blocks de BlocResiduel.
         """
         # Le premier bloc du stage a le stride donné, les autres ont un stride de 1
         strides = [stride] + [1] * (num_blocks - 1)
         layers = []
         for s in strides:
-            layers.append(ResidualBlock(self.in_channels, out_channels, stride=s, dropout_p=dropout_p, fonction_activation = fonction_activation, fonction = fonction, residual = residual, batch_norm = batch_norm))
+            layers.append(BlocResiduel(self.in_channels, out_channels, stride=s, dropout_p=dropout_p, fonction_activation = fonction_activation, fonction = fonction, residual = residual, batch_norm = batch_norm))
             # Le nombre de canaux d'entrée pour le prochain bloc est le nombre de canaux de sortie actuel
             self.in_channels = out_channels
         

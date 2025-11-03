@@ -141,78 +141,161 @@ La prédiction aléatoire uniforme a autant de chance de prédire chacune des cl
 ### 2.2 Architecture implémentée
 
 - **Description couche par couche** (ordre exact, tailles, activations, normalisations, poolings, résiduels, etc.) :
-  - Input → (32, 3, 64, 64)
+
+Ici, l'exemple d'un batch de 32 est pris. Il se peut que l'utilisation soit ensuite faite sur un autre nombre de batch selon la configuration stockée dans config.yaml et les performances que cela entraîne.
+
+  - Input : 
+      Conv2d, BatchNorm2d(option), ReLU (ou dérivée)
+      Entrée (32, 3, 64, 64) Sortie (32, 64, 64, 64)
+      La fonction d'activation est ReLU par défaut, l'option de choisir avec GeLU, SeLU, LeakyReLU et ELU a été ajoutée.
+      Aucun Pooling utilisé dans ce ResNet
   - Stage 1 (répéter N₁ fois) : 
-  - Stage 2 (répéter N₂ fois) : …
-  - Stage 3 (répéter N₃ fois) : …
+      Conv2d, BatchNorm2d(option), ReLU(ou dérivée), Dropout2d, Conv2d, BatchNorm2d(option)
+      Entrée (32, 64, 64, 64) Sortie (32, 64, 64, 64)
+  - Stage 2 (répéter N₂ fois) : 
+      Conv2d, BatchNorm2d(option), ReLU(ou dérivée), Dropout2d, Conv2d, BatchNorm2d(option)
+      Entrée (32, 64, 64, 64) Sortie (32, 128, 32, 32)
+  - Stage 3 (répéter N₃ fois) : 
+      Conv2d, BatchNorm2d(option), ReLU(ou dérivée), Dropout2d, Conv2d, BatchNorm2d(option)
+      Entrée (32, 128, 32, 32) Sortie (32, 256, 16, 16)
   - Tête (GAP / linéaire) → logits (dimension = nb classes)
+      AdaptativeAvgPool2d, Flatten, Linear
+      Entrée (32, 256, 16, 16) Sortie (32, 200) (batch_size, num_classes)
+      Pas de fonction d'ac
 
 - **Loss function** :
   - Multi-classe : CrossEntropyLoss
 
-- **Sortie du modèle** : forme = __(batch_size, num_classes)__ (ou __(batch_size, num_attributes)__)
+- **Sortie du modèle** : forme = __(32, 200)__ (ou __(batch_size, num_attributes)__)
 
-- **Nombre total de paramètres** : `_____`
+- **Nombre total de paramètres** : `2 805 448` ou `4 584 776` en fonction du nombre de blocs résiduels
 
 **M1.** Décrivez l’**architecture** complète et donnez le **nombre total de paramètres**.  
 Expliquez le rôle des **2 hyperparamètres spécifiques au modèle** (ceux imposés par votre sujet).
 
+Il existe 3 composantes principales à ce réseau, la phase d'input, l'empilement des blocs résiduels et enfin la tête.
+La phase d'input permet de préparer les données d'entrée à nos blocs résiduels en changeant le nombre de channel.
+La phase de bloc résiduel permet de reconnaître les patternes qui peuvent définir un objet, une classe d'image.
+La dernière phase, la tête permet de transformer ces patternes en prédiction en les structurant en une sortie compréhensible (nombre de batchs, numéro label).
+
+Deux hyperparamètres spécifiques existent pour ce modèle. Le nombre de blocs résiduels et le taux de drop out.
+Le nombre de blocs (2,2,2 ou 3,3,3) permet de réguler la profondeur du réseau, lorsque la profondeur est plus grande, le risque d'overfitting l'est aussi.
+Le taux de dropout régule ce problème d'overfitting en donnant une probabilité de désactivation de neurones. Cela rend le modèle plus robuste. (0.1 ou 0.3).
+Ces deux hyperparamètres vont parfaitement de paire.
 
 ### 2.3 Perte initiale & premier batch
 
-- **Loss initiale attendue** (multi-classe) ≈ `-log(1/num_classes)` ; exemple 100 classes → ~4.61
-- **Observée sur un batch** : `_____`
+- **Loss initiale attendue** (multi-classe) ≈ `-log(1/num_classes)` = 5.298
+- **Observée sur un batch** : `5.2958`
 - **Vérification** : backward OK, gradients ≠ 0
 
 **M2.** Donnez la **loss initiale** observée et dites si elle est cohérente. Indiquez la forme du batch et la forme de sortie du modèle.
+
+La loss initiale obtenue est de 5.2958, très proche de la loss théorique, cela signifie que le modèle est cohérent. Le batch est de forme (32,3,64,64) et la sortie du modèle de forme (32, 200).
 
 ---
 
 ## 3) Overfit « petit échantillon »
 
 - **Sous-ensemble train** : `N = ____` exemples
-- **Hyperparamètres modèle utilisés** (les 2 à régler) : `_____`, `_____`
-- **Optimisation** : LR = `_____`, weight decay = `_____` (0 ou très faible recommandé)
-- **Nombre d’époques** : `_____`
+- **Hyperparamètres modèle utilisés** (les 2 à régler) : `dropout = 0.1`, `blocs résiduels = [3,3,3]`
+- **Optimisation** : LR = `0.001`, weight decay = `0` (0 ou très faible recommandé)
+- **Nombre d’époques** : `100`
 
 > _Insérer capture TensorBoard : `train/loss` montrant la descente vers ~0._
 
 **M3.** Donnez la **taille du sous-ensemble**, les **hyperparamètres** du modèle utilisés, et la **courbe train/loss** (capture). Expliquez ce qui prouve l’overfit.
+
+Le test a été mené sur un sous-ensemble de 64 exemples avec les hyperparamètres de modèle B=(3,3,3) et dropout=0.1 afin de maximiser les potentiels d'overfitting. La courbe train/loss (voir capture ci-dessus) montre que la perte d'entraînement diminue de manière drastique pour tendre vers zéro dès 40 époques.
+
+Ce comportement prouve l'overfitting car il démontre que le modèle a une capacité suffisante pour mémoriser parfaitement ce petit jeu de données. S'il n'arrivait pas à faire chuter la perte, cela indiquerait un problème dans l'architecture ou le pipeline d'entraînement. Le succès de ce test valide donc la capacité d'apprentissage de notre modèle.
 
 ---
 
 ## 4) LR finder
 
 - **Méthode** : balayage LR (log-scale), quelques itérations, log `(lr, loss)`
-- **Fenêtre stable retenue** : `_____ → _____`
+- **Fenêtre stable retenue** : `7.0e-08 → 9.9e-04`
 - **Choix pour la suite** :
-  - **LR** = `_____`
-  - **Weight decay** = `_____` (valeurs classiques : 1e-5, 1e-4)
+  - **LR** = `0.0001`
+  - **Weight decay** = `1e-05` (valeurs classiques : 1e-5, 1e-4)
 
 > _Insérer capture TensorBoard : courbe LR → loss._
 
 **M4.** Justifiez en 2–3 phrases le choix du **LR** et du **weight decay**.
+Classement des combinaisons (de la meilleure à la moins bonne):
 
+    Learning Rate  Weight Decay      Loss
+0         0.00010       0.00001  5.058476
+1         0.00010       0.00100  5.061198
+2         0.00010       0.00000  5.073034
+3         0.00005       0.00001  5.124333
+4         0.00005       0.00100  5.128525
+5         0.00010       0.00010  5.130843
+6         0.00005       0.00000  5.145882
+7         0.00050       0.00100  5.148840
+8         0.00005       0.00010  5.152627
+9         0.00050       0.00000  5.154968
+10        0.00050       0.00010  5.194970
+11        0.00100       0.00010  5.198978
+12        0.00100       0.00100  5.210259
+13        0.00050       0.00001  5.216026
+14        0.01000       0.00001  5.254538
+15        0.01000       0.00010  5.269663
+16        0.00100       0.00000  5.269957
+17        0.00500       0.00001  5.271437
+18        0.01000       0.00100  5.281708
+19        0.01000       0.00000  5.299198
+20        0.00500       0.00100  5.314303
+21        0.00500       0.00000  5.319302
+22        0.00001       0.00000  5.327222
+23        0.00001       0.00100  5.328353
+24        0.00001       0.00010  5.329051
+25        0.00001       0.00001  5.334647
+26        0.00500       0.00010  5.343188
+27        0.00100       0.00001  5.343339
 ---
 
 ## 5) Mini grid search (rapide)
 
 - **Grilles** :
-  - LR : `{_____ , _____ , _____}`
-  - Weight decay : `{1e-5, 1e-4}`
-  - Hyperparamètre modèle A : `{_____, _____}`
-  - Hyperparamètre modèle B : `{_____, _____}`
+  - LR : `{9.9e-05}`
+  - Weight decay : `{1e-5}`
+  - Hyperparamètre modèle A : `{(2,2,2), (3,3,3)}`
+  - Hyperparamètre modèle B : `{0.1, 0.3}`
 
-- **Durée des runs** : `_____` époques par run (1–5 selon dataset), même seed
+- **Durée des runs** : `5` époques par run (1–5 selon dataset), même seed
 
-| Run (nom explicite) | LR    | WD     | Hyp-A | Hyp-B | Val metric (nom=_____) | Val loss | Notes |
-|---------------------|-------|--------|-------|-------|-------------------------|----------|-------|
-|                     |       |        |       |       |                         |          |       |
-|                     |       |        |       |       |                         |          |       |
+==================================================
+RÉSULTATS DE LA GRID SEARCH
+==================================================
+🏆 Meilleure accuracy de validation : 1.50%
+Hyperparamètres correspondants :
+  - lr: 9.9e-05
+  - weight_decay: 1e-07
+  - dropout_p: 0.3
+  - block_config: [2, 2, 2]
+==================================================
+
+Sur un ensemble de train de 10,000 et un ensemble de test de 2,000
+
+================================================================================
+TABLEAU RÉCAPITULATIF DE LA GRID SEARCH
+================================================================================
+| Run (nom explicite)                                                  |      LR |    WD | Hyp-A (block_config)   |   Hyp-B (dropout_p) |   Val metric (nom=Accuracy (%)) |   Val loss | Notes   |
+|:---------------------------------------------------------------------|--------:|------:|:-----------------------|--------------------:|--------------------------------:|-----------:|:--------|
+| run_lr=9.9e-05_weight_decay=1e-05_dropout_p=0.1_block_config=[2-2-2] | 9.9e-05 | 1e-05 | [2, 2, 2]              |                 0.1 |                            1.3  |     6.4148 |         |
+| run_lr=9.9e-05_weight_decay=1e-05_dropout_p=0.1_block_config=[3-3-3] | 9.9e-05 | 1e-05 | [3, 3, 3]              |                 0.1 |                            2.75 |     5.3295 |         |
+| run_lr=9.9e-05_weight_decay=1e-05_dropout_p=0.3_block_config=[2-2-2] | 9.9e-05 | 1e-05 | [2, 2, 2]              |                 0.3 |                            2.3  |     6.2908 |         |
+| run_lr=9.9e-05_weight_decay=1e-05_dropout_p=0.3_block_config=[3-3-3] | 9.9e-05 | 1e-05 | [3, 3, 3]              |                 0.3 |                            1.35 |     5.7039 |         |
+
+
 
 > _Insérer capture TensorBoard (onglet HParams/Scalars) ou tableau récapitulatif._
 
 **M5.** Présentez la **meilleure combinaison** (selon validation) et commentez l’effet des **2 hyperparamètres de modèle** sur les courbes (stabilité, vitesse, overfit).
+
+
 
 ---
 

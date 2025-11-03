@@ -12,9 +12,10 @@ import torch
 
 
 class AugmentationDataset(Dataset):
-    def __init__(self, data_path, column, transform=None):
+    def __init__(self, data_path, transform=None):
         data = torch.load(data_path, mmap=True, map_location="cpu", weights_only=False)
-        self.images = data[column]
+        self.images = data["image"]
+        self.labels = data["label"]
         self.transform = transform
         
     def __len__(self):
@@ -22,10 +23,12 @@ class AugmentationDataset(Dataset):
 
     def __getitem__(self, i):
         image = self.images[i]
-        
+        label = self.labels[i]
+
         if self.transform:
             image = self.transform(image)
-        return image
+
+        return image, label
     
 
 def get_augmentation_transforms(config: dict):

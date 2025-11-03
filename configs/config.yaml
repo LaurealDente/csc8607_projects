@@ -1,4 +1,3 @@
-# Fichier de configuration générique (à adapter au projet)
 dataset:
   name: imagenet                # ex: "CIFAR10", "IMDB", ...
   root: "zh-plus/tiny-imagenet"            # chemin local pour les données
@@ -41,27 +40,32 @@ augment:
 model:
   type: Convolutional Neural Network - Residual Network                # ex: "resnet18", "mlp", "lstm", ...
   num_classes: 200
+  in_channels: 3
   input_shape: [32,3,64,64]             # ex: [3, 32, 32] ou null
   hidden_sizes: [64,64,128,256,200]          # ex: [256, 128] ou null
   residual_blocks : [3,3,3]
-  activation: leaky_relu          # ex: relu, gelu, elu, selu, leaky relu
-  dropout: 0.3              # ex: 0.0–0.5
+  activation: relu          # ex: relu, gelu, elu, selu, leaky relu
+  dropout: 0.1              # ex: 0.0–0.5
+  stage_widths: [64, 128, 256]
   batch_norm: True         # true/false
-  residual: False           # true/false
+  residual: True           # true/false
   # attention: True          # true/false
 
 train:
   seed: 42
   device: cuda              # "cpu", "cuda", ou "auto"
   batch_size: 32
-  epochs: 10
+  epochs: 200
   max_steps: null           # entier ou null
   overfit_small: false      # true pour sur-apprendre sur un petit échantillon
+  overfit_epochs : 100
+  finder_start_lr: 1.0e-8 
 
   optimizer:
     name: adam              # sgd/adam/rmsprop
     lr: 0.001
     weight_decay: 0.0
+    over_weight_decay: 0.0
     momentum: 0.9           # utile si SGD
 
   scheduler:
@@ -77,8 +81,25 @@ metrics:
 
 hparams:                    # espace pour mini grid search
   lr: [0.0005, 0.001, 0.005]
+  num_blocks: [2,3] 
   batch_size: [32, 64]
   weight_decay: [0.0, 0.0005]
+
+grid_search:
+  hparams:
+    lr: [0.0001]
+    weight_decay: [1.0e-05]
+    dropout_p: [0.1, 0.3]
+    block_config: [[2, 2, 2],[3, 3, 3]]
+
+  model:
+    B1: 2
+    B2: 2
+    B3: 2 
+    residual: True
+    batch_norm: True
+    fonction: relu
+    num_classes: 200
 
 paths:
   runs_dir: "./runs"

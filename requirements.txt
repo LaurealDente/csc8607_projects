@@ -8,3 +8,5 @@ tqdm
 numpy
 datasets
 matplotlib
+tqdm
+pandas
