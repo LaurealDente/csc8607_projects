@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 from classes import i2d
 from torch.utils.data import DataLoader
 
-import augmentation
-import preprocessing
+import src.augmentation as augmentation
+import src.preprocessing as preprocessing
 
 
 

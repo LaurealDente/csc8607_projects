@@ -15,7 +15,7 @@ from collections import Counter
 from torch.utils.data import DataLoader, Dataset
 import numpy as np
 import torch
-import augmentation
+import src.augmentation as augmentation
 
 
 def detect_dataset_particularities(dataset):

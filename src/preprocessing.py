@@ -9,7 +9,7 @@ import yaml
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 import torch
-import data_loading
+import src.data_loading as data_loading
 
 
 def preprocess_dataset(list_pil_img, mean=None, std=None):
