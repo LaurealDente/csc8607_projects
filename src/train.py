@@ -89,7 +89,7 @@ def create_stratified_subset_loader_manual(
 
 
 def mini_grid_search(data_loader_train, data_loader_test, config, device, num_epochs, criterion):
-
+    
     all_results = []
 
     # Hyperparamètres à tester
@@ -120,9 +120,15 @@ def mini_grid_search(data_loader_train, data_loader_test, config, device, num_ep
 
     models_to_test = [model.build_model(cfg) for cfg in configs_to_test]
 
-    for modele in models_to_test:
-        optimizer = get_optimizer(modele, config, 0, config["grid_search"]["hparams"]["weight_decay"][0])
+    # Créer le writer TensorBoard dans le dossier runs/grid_search
+    
+    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    runs_grid_search_path = os.path.join(script_dir, "runs/grid_search")
 
+    writer = SummaryWriter(log_dir=runs_grid_search_path)
+
+    for idx, modele in enumerate(models_to_test):
+        optimizer = get_optimizer(modele, config, 0, config["grid_search"]["hparams"]["weight_decay"][0])
         
         modele.to(device)
         epoch_iterator = tqdm(range(num_epochs))
@@ -169,23 +175,34 @@ def mini_grid_search(data_loader_train, data_loader_test, config, device, num_ep
                 final_val_loss = float('nan')
                 final_val_accuracy = 0.0
                 notes = "Échoué (NaN)"
-                
+
             print(f"Résultats -> Val Loss: {final_val_loss:.4f}, Val Accuracy: {final_val_accuracy:.2f}%")
+
+            # Enregistrer dans TensorBoard (par modèle et epoch)
+            writer.add_scalar(f"Model_{idx}/Val_Loss", final_val_loss, epoch)
+            writer.add_scalar(f"Model_{idx}/Val_Accuracy", final_val_accuracy, epoch)
+
             all_results.append({
-                "Modèle": epoch,
+                "Modèle": idx,
+                "Epoch": epoch,
                 "Accuracy (%)": final_val_accuracy,
                 "Loss": final_val_loss,
                 "Notes": notes
             })
 
-        # Créer et afficher le tableau final
-        results_df = pd.DataFrame(all_results).sort_values(by="Accuracy (%)", ascending=False)
-        print("\n\n" + "="*50)
-        print("        RÉCAPITULATIF FINAL DES PERFORMANCES")
-        print("="*50)
-        print(results_df.to_markdown(index=False))
+        # Fermer le modèle avant de passer au suivant (optionnel)
+        modele.cpu()
 
-        return results_df
+    writer.close()
+
+    # Créer et afficher le tableau final
+    results_df = pd.DataFrame(all_results).sort_values(by=["Modèle", "Epoch"])
+    print("\n\n" + "="*50)
+    print("        RÉCAPITULATIF FINAL DES PERFORMANCES")
+    print("="*50)
+    print(results_df.to_markdown(index=False))
+
+    return results_df
 
 
 
