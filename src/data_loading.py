@@ -102,7 +102,7 @@ def get_data(config: dict):
         return final_datasets, particularities
     
     except Exception as e:
-        raise NotImplementedError("get_dataloaders doit être implémentée par l'étudiant·e." + e)
+        raise NotImplementedError("get_dataloaders doit être implémentée par l'étudiant·e." + str(e))
 
 
 
