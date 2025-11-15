@@ -14,11 +14,10 @@ Exigences minimales :
 import argparse
 import yaml
 import os
-import model
-import data_loading
-import augmentation
-import preprocessing
-import model
+import src.model as model
+import src.data_loading as data_loading
+import src.augmentation as augmentation
+import src.preprocessing as preprocessing
 import torch
 import torch.nn as nn
 import math
