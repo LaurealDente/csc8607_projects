@@ -54,7 +54,7 @@ def save_dataset(images, labels, dataset):
             "image": images,
             "label": labels 
         }
-        torch.save(dataset_to_save, "csc8607_projects/data/preprocessed_dataset_" 
+        torch.save(dataset_to_save, "data/preprocessed_dataset_" 
                    + dataset 
                    + ".pt")
 
