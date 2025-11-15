@@ -69,8 +69,6 @@ Cela permettra d'avoir une meilleure précision sur la matrice de confusion.
 **D5.** Mentionnez toute particularité détectée (tailles variées, longueurs variables, multi-labels, etc.).
 
 Une particularité est détectée après traitement. Les tailles des images sont égales avec un format de 64x64 avec 3 channel (RGB). Sauf 2% des images qui n'ont qu'un seul canal (L).
-
-Les longeurs de variables sont donc aussi similaires.
 Les labels sont tous des entiers entre 0 et 199, il n'y a aucun multi labels.
 
 

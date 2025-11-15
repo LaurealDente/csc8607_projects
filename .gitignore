@@ -6,7 +6,6 @@ __pycache__/
 
 # Données & sorties
 data/
-runs/
 artifacts/
 
 # OS / IDE
