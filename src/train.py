@@ -128,7 +128,7 @@ def mini_grid_search(data_loader_train, data_loader_test, config, device, num_ep
     writer = SummaryWriter(log_dir=runs_grid_search_path)
 
     for idx, (modele, cfg) in enumerate(zip(models_to_test, configs_to_test)):
-        optimizer = get_optimizer(modele, config, 0, config["grid_search"]["hparams"]["weight_decay"][0], config["grid_search"]["hparams"]["lr"][0])
+        optimizer = get_optimizer(modele, config, config["grid_search"]["hparams"]["weight_decay"][0], config["grid_search"]["hparams"]["lr"][0])
         
         modele.to(device)
         epoch_iterator = tqdm(range(num_epochs))
