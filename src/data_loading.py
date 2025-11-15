@@ -64,46 +64,40 @@ def get_data(config: dict):
     """
     Crée et retourne les datasets d'entraînement/validation/test.
     """
-
-    try:
-        tiny_imagenet = datasets.load_dataset(config["dataset"]["root"])
-        
-        split_dataset = tiny_imagenet["train"].train_test_split(test_size=config["dataset"]["split"]["test"]["p"], 
-                                            seed=config["train"]["seed"], 
-                                            stratify_by_column=config["dataset"]["columns"]["label"])
-        
-        final_datasets = datasets.DatasetDict({
-            "train": split_dataset["train"],
-            "valid": tiny_imagenet["valid"],
-            "test": split_dataset["test"]
-        })
-
-        for dataset in final_datasets:
-            save_dataset(final_datasets[dataset][config["dataset"]["columns"]["image"]], final_datasets[dataset][config["dataset"]["columns"]["label"]], dataset)
-
-        
-        # log_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../runs")
-        # writer = SummaryWriter(log_dir=log_dir)
-
-        particularities = {}
-
-        for split_name, dataset in final_datasets.items():
-            labels = dataset["label"]
-            unique_labels, counts = np.unique(labels, return_counts=True)
-            
-            count_distribution = Counter(counts)
-            label_dist_dict = {str(k): v for k, v in count_distribution.items()}
-            
-            # writer.add_scalars(f"label_distribution/{split_name}", label_dist_dict, global_step=0)
-            
-            particularities[split_name] = detect_dataset_particularities(dataset)
-
-        # writer.close()
-        return final_datasets, particularities
+    tiny_imagenet = datasets.load_dataset(config["dataset"]["root"])
     
-    except Exception as e:
-        raise NotImplementedError("get_dataloaders doit être implémentée par l'étudiant·e." + str(e))
+    split_dataset = tiny_imagenet["train"].train_test_split(test_size=config["dataset"]["split"]["test"]["p"], 
+                                        seed=config["train"]["seed"], 
+                                        stratify_by_column=config["dataset"]["columns"]["label"])
+    
+    final_datasets = datasets.DatasetDict({
+        "train": split_dataset["train"],
+        "valid": tiny_imagenet["valid"],
+        "test": split_dataset["test"]
+    })
 
+    for dataset in final_datasets:
+        save_dataset(final_datasets[dataset][config["dataset"]["columns"]["image"]], final_datasets[dataset][config["dataset"]["columns"]["label"]], dataset)
+
+    
+    # log_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../runs")
+    # writer = SummaryWriter(log_dir=log_dir)
+
+    particularities = {}
+
+    for split_name, dataset in final_datasets.items():
+        labels = dataset["label"]
+        unique_labels, counts = np.unique(labels, return_counts=True)
+        
+        count_distribution = Counter(counts)
+        label_dist_dict = {str(k): v for k, v in count_distribution.items()}
+        
+        # writer.add_scalars(f"label_distribution/{split_name}", label_dist_dict, global_step=0)
+        
+        particularities[split_name] = detect_dataset_particularities(dataset)
+
+    # writer.close()
+    return final_datasets, particularities
 
 
 def get_dataloaders(dataset, augmentation_pipeline, config: dict):
