@@ -101,8 +101,8 @@ def get_data(config: dict):
         # writer.close()
         return final_datasets, particularities
     
-    except :
-        raise NotImplementedError("get_dataloaders doit être implémentée par l'étudiant·e.")
+    except Exception as e:
+        raise NotImplementedError("get_dataloaders doit être implémentée par l'étudiant·e." + e)
 
 
 
@@ -110,15 +110,16 @@ def get_dataloaders(dataset, augmentation_pipeline, config: dict):
     """
     Crée et retourne les DataLoaders d'entraînement/validation/test et des métadonnées.
     """
+    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if dataset == "train" :
-        data = augmentation.AugmentationDataset(data_path=config["dataset"]["split"]["train"]["chemin"], 
+        data = augmentation.AugmentationDataset(data_path=os.path.join(script_dir,config["dataset"]["split"]["train"]["chemin"]), 
                                                 transform=augmentation_pipeline)
         data_loader = DataLoader(data, 
                                 batch_size=config["train"]["batch_size"], 
                                 shuffle=True, 
                                 num_workers=config["dataset"]["num_workers"])
     else :
-        data = augmentation.AugmentationDataset(data_path=config["dataset"]["split"]["train"]["chemin"])
+        data = augmentation.AugmentationDataset(data_path=os.path.join(script_dir,config["dataset"]["split"][dataset]["chemin"]))
         data_loader = DataLoader(data, 
                                 batch_size=config["train"]["batch_size"], 
                                 shuffle=False, 

@@ -4,13 +4,13 @@ dataset:
   split:                    # optionnel : noms/tailles de splits
     train:
       p: 0.9
-      chemin: csc8607_projects/data/preprocessed_dataset_train.pt
+      chemin: data/preprocessed_dataset_train.pt
     val: 
       p: 0
-      chemin: csc8607_projects/data/preprocessed_dataset_valid.pt
+      chemin: data/preprocessed_dataset_valid.pt
     test: 
       p: 0.1
-      chemin: csc8607_projects/data/preprocessed_dataset_test.pt
+      chemin: data/preprocessed_dataset_test.pt
   download: true            # si supporté
   num_workers: 8
   shuffle: true

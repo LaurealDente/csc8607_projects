@@ -189,21 +189,6 @@ def mini_grid_search(data_loader_train, data_loader_test, config, device, num_ep
         return results_df
 
 
-    param_grid = {
-        'module': models_to_test,
-        'lr': [0.0001],
-        'optimizer__weight_decay': [1.0e-05],
-        'max_epochs': [10] 
-    }
-
-
-    base_params = {
-        'in_channels': 3,
-        'residual': True,
-        'batch_norm': True,
-        'activation': 'relu'
-    }
-
 
 
 
@@ -451,8 +436,8 @@ def perte_premier_batch(modele, dataloader, config) :
 
 
 def main():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(script_dir, "../configs/config.yaml")
+    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    config_path = os.path.join(script_dir, "configs/config.yaml")
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=False, default=config_path)
     parser.add_argument("--seed", type=int, default=None)
@@ -466,10 +451,10 @@ def main():
 
 
     try :
-        with open(args.config, "r") as f:
+        with open(os.path.join(os.getcwd(),args.config), "r") as f:
             config = yaml.safe_load(f)
     except:
-        raise Exception("Mauvais chemin du fichier de configuration")   
+        raise Exception("Mauvais chemin du fichier de configuration : " + os.path.join(os.getcwd(),args.config))   
     
 
     device = torch.device(config["train"]["device"] if torch.cuda.is_available() else "cpu")
@@ -478,7 +463,7 @@ def main():
     log_dir_path = os.path.join(script_dir, "../runs/")
 
     # -- Récupération des données + Enregistrement (data) + Augmentation + Preprocessing -- #
-    # preprocessing.get_preprocess_transforms(config)
+    preprocessing.get_preprocess_transforms(config)
 
     # -- Récupération du modèle -- #
     modele = model.build_model(config)
@@ -529,7 +514,8 @@ def main():
 
     # -- Mini Grid Search -- #
     if args.grid_search:
-        mini_grid_search(train_loader_subset, test_loader_subset, config, device, 5, nn.CrossEntropyLoss())
+        print("grid_search")
+        mini_grid_search(train_loader_subset, test_loader_subset, config, device, 50, nn.CrossEntropyLoss())
 
 
 
