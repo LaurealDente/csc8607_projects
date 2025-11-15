@@ -127,7 +127,7 @@ def mini_grid_search(data_loader_train, data_loader_test, config, device, num_ep
 
     writer = SummaryWriter(log_dir=runs_grid_search_path)
 
-    for idx, modele in enumerate(models_to_test):
+    for idx, (modele, cfg) in enumerate(zip(models_to_test, configs_to_test)):
         optimizer = get_optimizer(modele, config, 0, config["grid_search"]["hparams"]["weight_decay"][0])
         
         modele.to(device)
@@ -185,9 +185,11 @@ def mini_grid_search(data_loader_train, data_loader_test, config, device, num_ep
             all_results.append({
                 "Modèle": idx,
                 "Epoch": epoch,
+                "Dropout": cfg["model"]["dropout"],
+                "Block config": cfg["model"]["residual_blocks"],
                 "Accuracy (%)": final_val_accuracy,
                 "Loss": final_val_loss,
-                "Notes": notes
+                "Notes": notes,
             })
 
         # Fermer le modèle avant de passer au suivant (optionnel)
