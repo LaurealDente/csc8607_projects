@@ -510,8 +510,7 @@ def main():
     )
 
     full_test_dataset = augmentation.AugmentationDataset(
-        data_path=config["dataset"]["split"]["test"]["chemin"],
-        transform=augmentation_pipeline)
+        data_path=config["dataset"]["split"]["test"]["chemin"])
 
     train_loader_subset = create_stratified_subset_loader_manual(
         dataset=full_train_dataset,
@@ -534,7 +533,7 @@ def main():
     # -- Mini Grid Search -- #
     if args.grid_search:
         print("grid_search")
-        mini_grid_search(train_loader_subset, test_loader_subset, config, device, 1000, nn.CrossEntropyLoss())
+        mini_grid_search(train_loader_subset, test_loader_subset, config, device, 200, nn.CrossEntropyLoss())
 
 
 
