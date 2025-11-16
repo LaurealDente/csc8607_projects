@@ -505,8 +505,7 @@ def main():
     # -- DataSet de recherche -- #
 
     full_train_dataset = augmentation.AugmentationDataset(
-        data_path=config["dataset"]["split"]["train"]["chemin"],
-        transform=augmentation_pipeline
+        data_path=config["dataset"]["split"]["train"]["chemin"]
     )
 
     full_test_dataset = augmentation.AugmentationDataset(
