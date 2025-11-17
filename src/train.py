@@ -513,12 +513,12 @@ def main():
 
     train_loader_subset = create_stratified_subset_loader_manual(
         dataset=full_train_dataset,
-        subset_size=10000,
+        subset_size=90000,
         batch_size=config['train']['batch_size']
     )
     test_loader_subset = create_stratified_subset_loader_manual(
         dataset=full_test_dataset,
-        subset_size=1000,
+        subset_size=10000,
         batch_size=config['train']['batch_size']
     )
 
