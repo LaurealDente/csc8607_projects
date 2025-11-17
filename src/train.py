@@ -532,7 +532,7 @@ def main():
     # -- Mini Grid Search -- #
     if args.grid_search:
         print("grid_search")
-        mini_grid_search(train_loader_subset, test_loader_subset, config, device, 200, nn.CrossEntropyLoss())
+        mini_grid_search(train_loader_subset, test_loader_subset, config, device, 1000, nn.CrossEntropyLoss())
 
 
 
