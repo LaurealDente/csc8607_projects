@@ -30,10 +30,10 @@ def mini_grid_search(data_loader_train, data_loader_test, config, device, num_ep
     block_config_options = [[2, 2, 2], [3, 3, 3]]
 
     # Paramètres fixes
-    num_classes = 200
-    use_residual = True
-    use_batch_norm = True
-    activation_fn = "relu"
+    num_classes = config['model']['num_classes']
+    use_residual = config['model']['residual']
+    use_batch_norm = config['model']['batch_norm']
+    activation_fn = config['model']['activation']
 
     # Créer la liste de toutes les configurations
     configs_to_test = []
@@ -157,22 +157,21 @@ def main():
 
     train_loader_subset = data_loading.create_stratified_subset_loader_manual(
         dataset=full_train_dataset,
-        subset_size=90000,
+        subset_size=args.config['grid_search']['subset_size']['train'],
         batch_size=args.config['train']['batch_size']
     )
     test_loader_subset = data_loading.create_stratified_subset_loader_manual(
         dataset=full_test_dataset,
-        subset_size=10000,
+        subset_size=args.config['grid_search']['subset_size']['test'],
         batch_size=args.config['train']['batch_size']
     )
-
 
     device = torch.device(args.config["train"]["device"] if torch.cuda.is_available() else "cpu")
 
     # -- Mini Grid Search -- #
     if args.grid_search:
         print("grid_search")
-        mini_grid_search(train_loader_subset, test_loader_subset, args.config, device, 1000, nn.CrossEntropyLoss())
+        mini_grid_search(train_loader_subset, test_loader_subset, args.config, device, args.config['grid_search']['epochs'], nn.CrossEntropyLoss())
 
 
 if __name__ == "__main__":

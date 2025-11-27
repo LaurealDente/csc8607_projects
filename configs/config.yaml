@@ -32,10 +32,10 @@ augment:
     scale: [0.8,1.0]
     ratio: [1.0,1.0]
   color_jitter:
-    brightness: 0.2
-    contrast: 0.2
-    saturation: 0.2
-    hue: 0.2
+    brightness: 0.1
+    contrast: 0.1
+    saturation: 0.1
+    hue: 0.1
 
 model:
   type: Convolutional Neural Network - Residual Network                # ex: "resnet18", "mlp", "lstm", ...
@@ -49,7 +49,6 @@ model:
   stage_widths: [64, 128, 256]
   batch_norm: True         # true/false
   residual: True           # true/false
-  # attention: True          # true/false
 
 train:
   seed: 42
@@ -91,6 +90,10 @@ grid_search:
     weight_decay: [1.0e-05]
     dropout_p: [0.3]
     block_config: [[3, 3, 3]]
+  subset_size:
+    train : 45000 
+    test : 5000
+  epochs : 200
 
   model:
     B1: 2
