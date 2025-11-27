@@ -169,9 +169,8 @@ def main():
     device = torch.device(args.config["train"]["device"] if torch.cuda.is_available() else "cpu")
 
     # -- Mini Grid Search -- #
-    if args.grid_search:
-        print("grid_search")
-        mini_grid_search(train_loader_subset, test_loader_subset, args.config, device, args.config['grid_search']['epochs'], nn.CrossEntropyLoss())
+    print("grid_search")
+    mini_grid_search(train_loader_subset, test_loader_subset, args.config, device, args.config['grid_search']['epochs'], nn.CrossEntropyLoss())
 
 
 if __name__ == "__main__":
