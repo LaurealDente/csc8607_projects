@@ -9,7 +9,24 @@ import yaml
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 import torch
-import src.data_loading as data_loading
+import sys
+
+
+
+def save_dataset(images, labels, dataset):
+
+    dataset_to_save = {
+        "image": images,
+        "label": labels 
+    }
+    torch.save(dataset_to_save, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")+ "preprocessed_dataset_" 
+                + dataset 
+                + ".pt")
+
+    print("Preprocessed data saved : " +  os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")+ "preprocessed_dataset_" 
+                + dataset 
+                + ".pt")
+
 
 
 def preprocess_dataset(list_pil_img, mean=None, std=None):
@@ -58,14 +75,20 @@ def get_preprocess_transforms(config: dict):
         labels_tensor = torch.tensor(list_of_labels, dtype=torch.int64)
         
         normalized_datasets.append(normalized)
-        data_loading.save_dataset(normalized, labels_tensor, dataset)
+        save_dataset(normalized, labels_tensor, dataset)
 
     return normalized_datasets
 
 
 if __name__ == "__main__":
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(script_dir, "../configs/config.yaml")
+    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    print(script_dir)
+    sys.path.append(script_dir)
+    config_path = os.path.join(script_dir, "configs/config.yaml")
+
+
+    from src import data_loading
+
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
     get_preprocess_transforms(config)

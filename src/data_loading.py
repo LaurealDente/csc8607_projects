@@ -12,10 +12,11 @@ import datasets
 import yaml
 import os
 from collections import Counter
-from torch.utils.data import DataLoader, Dataset
 import numpy as np
-import torch
-import src.augmentation as augmentation
+from collections import defaultdict
+from src import augmentation, preprocessing
+from torch.utils.data import Subset, DataLoader, Dataset
+import random
 
 
 def detect_dataset_particularities(dataset):
@@ -48,18 +49,6 @@ def detect_dataset_particularities(dataset):
     return particularities
 
 
-def save_dataset(images, labels, dataset):
-
-        dataset_to_save = {
-            "image": images,
-            "label": labels 
-        }
-        torch.save(dataset_to_save, "data/preprocessed_dataset_" 
-                   + dataset 
-                   + ".pt")
-
-
-
 def get_data(config: dict):
     """
     Crée et retourne les datasets d'entraînement/validation/test.
@@ -77,7 +66,7 @@ def get_data(config: dict):
     })
 
     for dataset in final_datasets:
-        save_dataset(final_datasets[dataset][config["dataset"]["columns"]["image"]], final_datasets[dataset][config["dataset"]["columns"]["label"]], dataset)
+        preprocessing.save_dataset(final_datasets[dataset][config["dataset"]["columns"]["image"]], final_datasets[dataset][config["dataset"]["columns"]["label"]], dataset)
 
     
     # log_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../runs")
@@ -119,6 +108,63 @@ def get_dataloaders(dataset, augmentation_pipeline, config: dict):
                                 shuffle=False, 
                                 num_workers=config["dataset"]["num_workers"])
     return data_loader
+
+
+
+def create_stratified_subset_loader_manual(
+    dataset: Dataset, 
+    subset_size: int, 
+    batch_size: int, 
+    num_workers: int = 0
+    ) -> DataLoader:
+    # 1. Vérifier que le dataset a bien une liste de labels
+    if hasattr(dataset, 'targets'):
+        labels = np.array(dataset.targets)
+    elif hasattr(dataset, 'labels'):
+        labels = np.array(dataset.labels)
+    else:
+        raise AttributeError("Le Dataset doit avoir un attribut '.targets' ou '.labels' pour la stratification.")
+
+    # S'assurer que la taille du sous-ensemble est réaliste
+    subset_size = min(subset_size, len(dataset))
+
+    # 2. Regrouper les indices de chaque image par label
+    label_to_indices = defaultdict(list)
+    for idx, label in enumerate(labels):
+        label_to_indices[label].append(idx)
+
+    # 3. Calculer combien d'échantillons prendre par classe
+    final_indices = []
+    total_size = len(dataset)
+    
+    for label, indices in label_to_indices.items():
+        # Proportion de cette classe dans le dataset complet
+        proportion = len(indices) / total_size
+        # Nombre d'échantillons à prendre pour cette classe dans le sous-ensemble
+        num_samples_for_label = int(subset_size * proportion)
+        # Assurer qu'on prend au moins un échantillon si la classe est représentée
+        num_samples_for_label = max(1, num_samples_for_label)
+        
+        # 4. Piocher aléatoirement les indices pour cette classe
+        # `random.sample` pioche sans remise
+        sampled_indices = random.sample(indices, min(len(indices), num_samples_for_label))
+        final_indices.extend(sampled_indices)
+        
+    # 5. Créer le Subset et le DataLoader
+    random.shuffle(final_indices) # Mélanger les indices de toutes les classes
+    subset_dataset = Subset(dataset, final_indices)
+    
+    subset_loader = DataLoader(
+        subset_dataset,
+        batch_size=batch_size,
+        shuffle=True, # Important de mélanger le sous-ensemble final
+        num_workers=num_workers
+    )
+    
+    print(f"Création d'un sous-ensemble stratifié manuel de {len(subset_dataset)} échantillons.")
+    return subset_loader
+
+
     
 if __name__ == "__main__":
         

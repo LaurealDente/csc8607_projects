@@ -6,6 +6,7 @@ build_model(config: dict) -> torch.nn.Module
 """
 
 from torch import nn
+import torch
 import yaml
 import os
 
@@ -137,6 +138,27 @@ def build_model(config: dict):
                     config["model"]["num_classes"], config["model"]["residual"],
                     config["model"]["batch_norm"], fonction=config["model"]["activation"])
     return modele
+
+
+def get_optimizer(model, config, weight_decay=None, lr=None):
+    """
+    Crée un optimiseur.
+    Accepte weight_decay et lr comme arguments optionnels pour surcharger la config.
+    """
+    # Priorité à l'argument direct, sinon on prend la valeur dans le fichier config
+    wd_to_use = weight_decay if weight_decay is not None else config["train"]["optimizer"].get("weight_decay", 0)
+    lr_to_use = lr if lr is not None else config["train"]["optimizer"]["lr"]
+
+    optimizer_name = config["train"]["optimizer"]["name"]
+    
+    if optimizer_name == 'AdamW':
+        return torch.optim.AdamW(model.parameters(), lr=lr_to_use, weight_decay=wd_to_use)
+    elif optimizer_name == 'SGD':
+        # Assurez-vous d'avoir un momentum dans votre config si vous utilisez SGD
+        momentum = config["train"]["optimizer"].get("momentum", 0.9)
+        return torch.optim.SGD(model.parameters(), lr=lr_to_use, weight_decay=wd_to_use, momentum=momentum)
+    else:
+        return torch.optim.Adam(model.parameters(), lr=float(lr_to_use), weight_decay=float(wd_to_use))
     
 
 
