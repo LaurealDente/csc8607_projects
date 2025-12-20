@@ -219,9 +219,9 @@ def main():
         subset_size=config["grid_search"]["subset_size"]["train"],
         batch_size=config["train"]["batch_size"],
     )
-    test_loader_subset = data_loading.create_stratified_subset_loader_manual(
+    val_loader_subset = data_loading.create_stratified_subset_loader_manual(
         dataset=full_test_dataset,
-        subset_size=config["grid_search"]["subset_size"]["test"],
+        subset_size=config["grid_search"]["subset_size"]["val"],
         batch_size=config["train"]["batch_size"],
     )
 
@@ -232,7 +232,7 @@ def main():
     print("Lancement de la mini grid search...")
     mini_grid_search(
         train_loader_subset,
-        test_loader_subset,
+        val_loader_subset,
         config,
         device,
         num_epochs=config["grid_search"]["epochs"],

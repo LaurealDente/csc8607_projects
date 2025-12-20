@@ -92,8 +92,8 @@ grid_search:
     dropout: [0.1, 0.3]
     block_config: [[2, 2, 2], [3, 3, 3]]
   subset_size:
-    train : 45000 
-    test : 5000
+    train : 10000 
+    val : 3000
   epochs : 200
 
   model:
