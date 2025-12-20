@@ -22,7 +22,7 @@ def comparaison(original_img, augmented_img, label, index):
     Affiche une image originale (PIL) et sa version augmentée (tenseur) côte à côte.
     """
 
-    infos_path = os.path.join(os.path.dirname(__file__), 'csc8607_projects/src/dataset_infos.json')
+    infos_path = os.path.join(os.path.dirname(__file__), 'dataset_infos.json')
 
     with open(infos_path, 'r') as f:
         dataset_infos = json.load(f)
