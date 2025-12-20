@@ -14,6 +14,7 @@ from torch.utils.data import Subset, DataLoader
 import time
 import numpy as np
 from tqdm import tqdm
+from torch.optim.lr_scheduler import CosineAnnealingLR
 
 
 def overfitting_small(modele, config):
@@ -46,7 +47,7 @@ def overfitting_small(modele, config):
 
     print(f"Taille du sous-ensemble : {subset_size} exemples.")
     print(f"Hyperparamètres modèle : B={config['model']['residual_blocks']}, dropout={config['model']['dropout']}")
-    print(f"Optimisation : LR={config['train']['finder_start_lr']}, Weight Decay={config['train']['optimizer']['over_weight_decay']}")
+    print(f"Optimisation : LR={config['train']['optimizer']['lr']}, Weight Decay={config['train']['optimizer']['weight_decay']}")
     print(f"Nombre d'époques : {config['train']['overfit_epochs']}")
 
     for epoch in range(config['train']['overfit_epochs']):
@@ -133,11 +134,24 @@ def perte_premier_batch(modele, dataloader, config):
 
 
 def train(modele, train_loader, val_loader, config):
+    """
+    Entraînement final sur l'ensemble du dataset avec CosineAnnealingLR,
+    early stopping, et sauvegarde du meilleur modèle dans artifacts/best.ckpt.
+    """
     device = torch.device(config["train"]["device"] if torch.cuda.is_available() else "cpu")
     modele.to(device)
 
     optimizer = model.get_optimizer(modele, config)
     criterion = nn.CrossEntropyLoss()
+
+    # Scheduler CosineAnnealing pour l'entraînement complet
+    epochs = config["train"]["epochs"]
+    base_lr = optimizer.param_groups[0]["lr"]
+    scheduler = CosineAnnealingLR(
+        optimizer,
+        T_max=epochs,
+        eta_min=base_lr / 50.0
+    )
 
     # Dossiers runs / artifacts depuis la config
     runs_dir = config["paths"]["runs_dir"]
@@ -148,14 +162,15 @@ def train(modele, train_loader, val_loader, config):
     run_name = f"train_{time.strftime('%Y%m%d-%H%M%S')}"
     writer = SummaryWriter(log_dir=os.path.join(runs_dir, run_name))
 
+    # Early stopping + checkpoint
     patience = config["train"].get("early_stopping_patience", 10)
-    best_model_path = os.path.join(artifacts_dir, f"{run_name}_best.pt")
+    best_model_path = os.path.join(artifacts_dir, "best.ckpt")  # chemin demandé
     early_stopping = utils.EarlyStopping(patience=patience, path=best_model_path)
 
-    epochs = config["train"]["epochs"]
     max_steps = config["train"].get("max_steps", None)
 
     print(f"Début de l'entraînement sur {device} pour {epochs} époques (early stopping patience={patience}).")
+    print(f"LR initiale = {base_lr}, scheduler = CosineAnnealingLR(T_max={epochs}, eta_min={base_lr/50.0})")
 
     global_step = 0
 
@@ -181,7 +196,6 @@ def train(modele, train_loader, val_loader, config):
             total += batch_size
             correct += (predicted == labels).sum().item()
 
-            # Logging step-wise (optionnel)
             writer.add_scalar("train/loss_step", loss.item(), global_step)
             global_step += 1
 
@@ -212,7 +226,7 @@ def train(modele, train_loader, val_loader, config):
         val_loss = val_running_loss / val_total
         val_acc = val_correct / val_total
 
-        # --- LOGGING EPOCH ---
+        # Logging epoch
         print(f"Epoch {epoch+1}: train_loss={train_loss:.4f}, val_loss={val_loss:.4f}, "
               f"train_acc={train_acc:.2%}, val_acc={val_acc:.2%}")
 
@@ -220,12 +234,16 @@ def train(modele, train_loader, val_loader, config):
         writer.add_scalar("val/loss", val_loss, epoch)
         writer.add_scalar("train/accuracy", train_acc, epoch)
         writer.add_scalar("val/accuracy", val_acc, epoch)
+        writer.add_scalar("lr", optimizer.param_groups[0]["lr"], epoch)
 
-        # --- EARLY STOPPING ---
+        # Early stopping sur la val_loss
         early_stopping(val_loss, modele)
         if early_stopping.early_stop:
             print("Early stopping déclenché.")
             break
+
+        # Step du scheduler après l'epoch
+        scheduler.step()
 
     print("Chargement du meilleur modèle sauvegardé...")
     modele.load_state_dict(torch.load(best_model_path))
@@ -252,16 +270,28 @@ def main():
     except Exception:
         raise Exception("Mauvais chemin du fichier de configuration : " + os.path.join(os.getcwd(), args.config))
 
-    # Préprocess (sauvegarde data prétraitées)
+    # Fixer ici la configuration finale pour le rapport
+    config["train"]["optimizer"]["lr"] = 1e-4
+    config["train"]["optimizer"]["weight_decay"] = 1e-4
+    config["train"]["batch_size"] = 32
+    config["train"]["epochs"] = 100
+
+    # Choix du modèle A ou B en fonction d'un champ de config
+    # Par exemple: config["model"]["version"] = "A" ou "B"
+    version = config["model"].get("version", "A")
+    if version == "A":
+        config["model"]["dropout"] = 0.1
+        config["model"]["residual_blocks"] = [3, 3, 3]
+    else:
+        config["model"]["dropout"] = 0.1
+        config["model"]["residual_blocks"] = [2, 2, 2]
+
     preprocessing.get_preprocess_transforms(config)
 
-    # Modèle
     modele = model.build_model(config)
 
-    # Augmentation
     augmentation_pipeline = augmentation.get_augmentation_transforms(config)
 
-    # Dataloaders train / val
     train_loader = data_loading.get_dataloaders("train", augmentation_pipeline, config)
     val_loader = data_loading.get_dataloaders("val", None, config)
 

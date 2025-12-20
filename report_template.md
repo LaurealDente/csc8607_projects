@@ -267,55 +267,51 @@ On observe que LR = 0.0001 et WD = 0.0001 ont la combinaison avec la meilleure p
 ## 5) Mini grid search (rapide)
 
 - **Grilles** :
-  - LR : `{9.9e-05}`
-  - Weight decay : `{1e-5}`
+  - LR : `{0.0001}`
+  - Weight decay : `{0.0001}`
   - Hyperparamètre modèle A : `{(2,2,2), (3,3,3)}`
   - Hyperparamètre modèle B : `{0.1, 0.3}`
 
-- **Durée des runs** : `5` époques par run (1–5 selon dataset), même seed
-
-==================================================
-RÉSULTATS DE LA GRID SEARCH
-==================================================
-🏆 Meilleure accuracy de validation : 1.50%
-Hyperparamètres correspondants :
-  - lr: 9.9e-05
-  - weight_decay: 1e-07
-  - dropout_p: 0.3
-  - block_config: [2, 2, 2]
-==================================================
-
-Sur un ensemble de train de 10,000 et un ensemble de test de 2,000
-
-================================================================================
-TABLEAU RÉCAPITULATIF DE LA GRID SEARCH
-================================================================================
-| Run (nom explicite)                                                  |      LR |    WD | Hyp-A (block_config)   |   Hyp-B (dropout_p) |   Val metric (nom=Accuracy (%)) |   Val loss | Notes   |
-|:---------------------------------------------------------------------|--------:|------:|:-----------------------|--------------------:|--------------------------------:|-----------:|:--------|
-| run_lr=9.9e-05_weight_decay=1e-05_dropout_p=0.1_block_config=[2-2-2] | 9.9e-05 | 1e-05 | [2, 2, 2]              |                 0.1 |                            1.3  |     6.4148 |         |
-| run_lr=9.9e-05_weight_decay=1e-05_dropout_p=0.1_block_config=[3-3-3] | 9.9e-05 | 1e-05 | [3, 3, 3]              |                 0.1 |                            2.75 |     5.3295 |         |
-| run_lr=9.9e-05_weight_decay=1e-05_dropout_p=0.3_block_config=[2-2-2] | 9.9e-05 | 1e-05 | [2, 2, 2]              |                 0.3 |                            2.3  |     6.2908 |         |
-| run_lr=9.9e-05_weight_decay=1e-05_dropout_p=0.3_block_config=[3-3-3] | 9.9e-05 | 1e-05 | [3, 3, 3]              |                 0.3 |                            1.35 |     5.7039 |         |
-
+- **Durée des runs** : `15` époques par run (1–5 selon dataset), même seed
 
 
 > _Insérer capture TensorBoard (onglet HParams/Scalars) ou tableau récapitulatif._
 
+![alt text](images/image2.png)
+Avec ces graphiques du modèle 0, on voit le dropout à 0.1, le LR à 0.0001 et le Weight decay à 0.0001.
+On observe ensuite l'accuracy et la loss. 
+
+
 **M5.** Présentez la **meilleure combinaison** (selon validation) et commentez l’effet des **2 hyperparamètres de modèle** sur les courbes (stabilité, vitesse, overfit).
 
+|   Model_id |   Epoch |   Dropout | Block_config   |     LR |     WD |   Val_Accuracy (%) |   Val_Loss |
+|-----------:|--------:|----------:|:---------------|-------:|-------:|-------------------:|-----------:|
+|          1 |      14 |       0.1 | [3, 3, 3]      | 0.0001 | 0.0001 |           16.2333  |    3.83013 |
+|          0 |      14 |       0.1 | [2, 2, 2]      | 0.0001 | 0.0001 |           15.6     |    3.91378 |
+|          1 |      13 |       0.1 | [3, 3, 3]      | 0.0001 | 0.0001 |           15.5333  |    3.85172 |
+|          0 |      13 |       0.1 | [2, 2, 2]      | 0.0001 | 0.0001 |           15.3333  |    3.91986 |
+|          1 |      12 |       0.1 | [3, 3, 3]      | 0.0001 | 0.0001 |           15.3333  |    3.9107  |
+|          0 |      11 |       0.1 | [2, 2, 2]      | 0.0001 | 0.0001 |           14.8667  |    3.98614 |
+|          1 |       9 |       0.1 | [3, 3, 3]      | 0.0001 | 0.0001 |           14.3667  |    3.99894 |
+|          0 |      12 |       0.1 | [2, 2, 2]      | 0.0001 | 0.0001 |           14.2667  |    3.99412 |
+|          1 |      11 |       0.1 | [3, 3, 3]      | 0.0001 | 0.0001 |           14.2     |    3.91523 |
+|          0 |      10 |       0.1 | [2, 2, 2]      | 0.0001 | 0.0001 |           13.2333  |    4.04634 |
+|          0 |       9 |       0.1 | [2, 2, 2]      | 0.0001 | 0.0001 |           13.1333  |    4.08398 |
+|          1 |      10 |       0.1 | [3, 3, 3]      | 0.0001 | 0.0001 |           13.0667  |    4.01201 |
+|          2 |      14 |       0.3 | [2, 2, 2]      | 0.0001 | 0.0001 |           12.4333  |    4.15341 |
+|          3 |      14 |       0.3 | [3, 3, 3]      | 0.0001 | 0.0001 |           11.8     |    4.15436 |
 
-
----
+Avec ce classement des meilleurs résultats lors du grid search. Nous voyons clairement deux modèles qui le domine. Le 1 et le 0 qui ont un dropout de 0.1. Le 1 avec 3 block de 3 de config et le 0 avec 3 block de 2.
 
 ## 6) Entraînement complet (10–20 époques, sans scheduler)
 
 - **Configuration finale** :
-  - LR = `_____`
-  - Weight decay = `_____`
-  - Hyperparamètre modèle A = `_____`
-  - Hyperparamètre modèle B = `_____`
-  - Batch size = `_____`
-  - Époques = `_____` (10–20)
+  - LR = `0.0001`
+  - Weight decay = `0.0001`
+  - Hyperparamètre modèle A = `dropout = 0.1, block_config = [3,3,3]`
+  - Hyperparamètre modèle B = `dropout = 0.1, block_config = [2,2,2]`
+  - Batch size = `32`
+  - Époques = `100` (10–20)
 - **Checkpoint** : `artifacts/best.ckpt` (selon meilleure métrique val)
 
 > _Insérer captures TensorBoard :_
@@ -368,7 +364,7 @@ TABLEAU RÉCAPITULATIF DE LA GRID SEARCH
 
 ## 11) Reproductibilité
 
-- **Seed** : `_____`
+- **Seed** : `42`
 - **Config utilisée** : joindre un extrait de `configs/config.yaml` (sections pertinentes)
 - **Commandes exactes** :
 
