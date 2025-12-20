@@ -153,14 +153,18 @@ def train(modele, train_loader, val_loader, config):
         eta_min=base_lr / 50.0
     )
 
-    # Dossiers runs / artifacts depuis la config
     runs_dir = config["paths"]["runs_dir"]
     artifacts_dir = config["paths"]["artifacts_dir"]
     os.makedirs(runs_dir, exist_ok=True)
     os.makedirs(artifacts_dir, exist_ok=True)
 
     run_name = f"train_{time.strftime('%Y%m%d-%H%M%S')}"
-    writer = SummaryWriter(log_dir=os.path.join(runs_dir, run_name))
+
+    train_root = os.path.join(runs_dir, "train")
+    os.makedirs(train_root, exist_ok=True)
+
+    log_dir = os.path.join(train_root, run_name)
+    writer = SummaryWriter(log_dir=log_dir)
 
     # Early stopping + checkpoint
     patience = config["train"].get("early_stopping_patience", 10)
