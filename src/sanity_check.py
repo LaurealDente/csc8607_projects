@@ -4,11 +4,15 @@ import os
 import torch
 import json 
 import matplotlib.pyplot as plt
-from classes import i2d
 from torch.utils.data import DataLoader
+import sys
+
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import src.augmentation as augmentation
 import src.preprocessing as preprocessing
+from src.classes import i2d
 
 
 

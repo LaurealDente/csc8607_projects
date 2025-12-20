@@ -8,166 +8,11 @@ Fonctions attendues (signatures imposées) :
 - save_config_snapshot(config: dict, out_dir: str) -> None
 """
 
-def mini_grid_search(
-    model_class: Callable,
-    get_optimizer_fn: Callable,
-    criterion: torch.nn.Module,
-    train_loader: torch.utils.data.DataLoader,
-    val_loader: torch.utils.data.DataLoader,
-    hparams_grid: Dict[str, List],
-    base_model_config: Dict,
-    num_epochs: int,
-    device: torch.device,
-    seed: int = 42,
-    log_dir_base: str = "runs/grid_search"
-):
-    """
-    Effectue une mini grid search complète, corrigée pour la stabilité,
-    avec suivi, barre de progression, logging TensorBoard et affichage d'un
-    tableau récapitulatif final.
-    """
-    print(f"[INFO] Lancement de la mini grid search pour {num_epochs} époques...")
-    
-    keys, values = zip(*hparams_grid.items())
-    hparam_combinations = [dict(zip(keys, v)) for v in product(*values)]
-    print(f"[INFO] {len(hparam_combinations)} combinaisons à tester.")
-
-    results_for_table = []
-    best_hparams = None
-    best_val_accuracy = -1.0
-
-    for i, hparams in enumerate(hparam_combinations):
-        # --- Préparation de l'essai ---
-        torch.manual_seed(seed)
-        random.seed(seed)
-        np.random.seed(seed)
-
-        model_hparams = hparams.copy()
-        lr = model_hparams.pop('lr')
-        weight_decay = model_hparams.pop('weight_decay')
-        
-        if 'block_config' in model_hparams:
-            B1, B2, B3 = model_hparams.pop('block_config')
-            model_hparams.update({'B1': B1, 'B2': B2, 'B3': B3})
-        
-        current_model_config = {**base_model_config, **model_hparams}
-        
-        run_name_parts = [f"{k}={v}" for k, v in hparams.items()]
-        run_name = "run_" + "_".join(run_name_parts).replace(" ", "").replace("(", "").replace(")", "").replace(",", "-")
-        print(f"\n[TEST {i+1}/{len(hparam_combinations)}] : {run_name}")
-
-        model = model_class(**current_model_config).to(device)
-        optimizer = get_optimizer_fn(model, weight_decay, lr)
-        writer = SummaryWriter(f"{log_dir_base}/{run_name}")
-        
-        epoch_iterator = tqdm(range(num_epochs), desc="Entraînement")
-        training_failed = False
-        
-        for epoch in epoch_iterator:
-            model.train()
-            train_loss = 0.0
-            for inputs, targets in train_loader:
-                inputs, targets = inputs.to(device), targets.to(device)
-                optimizer.zero_grad()
-                outputs = model(inputs)
-                loss = criterion(outputs, targets)
-
-                # CORRECTION 1: Vérifier si la perte devient NaN
-                if torch.isnan(loss):
-                    print(f"\n[ERREUR] Loss est devenue NaN à l'époque {epoch}. Arrêt de cet essai.")
-                    training_failed = True
-                    break # Sort de la boucle des batches
-                
-                loss.backward()
-
-                # CORRECTION 2: Ajout du Gradient Clipping pour prévenir l'explosion
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-                
-                optimizer.step()
-                train_loss += loss.item()
-            
-            if training_failed:
-                break # Sort de la boucle des époques
-
-            # ... (Le reste de la boucle de validation et de logging reste similaire) ...
-            model.eval()
-            val_loss, correct, total = 0, 0, 0
-            with torch.no_grad():
-                for inputs, targets in val_loader:
-                    inputs, targets = inputs.to(device), targets.to(device)
-                    outputs = model(inputs)
-                    val_loss += criterion(outputs, targets).item()
-                    _, predicted = torch.max(outputs.data, 1)
-                    total += targets.size(0)
-                    correct += (predicted == targets).sum().item()
-            
-            # CORRECTION 3: Prévenir la division par zéro
-            avg_train_loss = train_loss / len(train_loader) if len(train_loader) > 0 else float('nan')
-            avg_val_loss = val_loss / len(val_loader) if len(val_loader) > 0 else float('nan')
-            val_accuracy = 100 * correct / total if total > 0 else 0.0
-            
-            writer.add_scalar("Loss/Train", avg_train_loss, epoch)
-            writer.add_scalar("Loss/Validation", avg_val_loss, epoch)
-            writer.add_scalar("Accuracy/Validation", val_accuracy, epoch)
-
-            epoch_iterator.set_postfix(
-                train_loss=f"{avg_train_loss:.4f}", 
-                val_loss=f"{avg_val_loss:.4f}", 
-                val_acc=f"{val_accuracy:.2f}%"
-            )
-
-        # --- Enregistrement des résultats de l'essai ---
-        final_val_accuracy = val_accuracy if not training_failed else 0.0
-        final_avg_val_loss = avg_val_loss if not training_failed else float('nan')
-        notes = "Échoué (NaN)" if training_failed else ""
-
-        if not training_failed and final_val_accuracy > best_val_accuracy:
-            best_val_accuracy = final_val_accuracy
-            best_hparams = hparams
-            print(f"  -> Nouveau meilleur score trouvé : {best_val_accuracy:.2f}%")
-
-        run_summary = {
-            'Run': run_name, 'LR': hparams.get('lr'), 'WD': hparams.get('weight_decay'),
-            'block_config': str(hparams.get('block_config', 'N/A')), 
-            'dropout_p': hparams.get('dropout_p', 'N/A'),
-            'Val Acc (%)': final_val_accuracy, 'Val Loss': final_avg_val_loss, 'Notes': notes
-        }
-        results_for_table.append(run_summary)
-        
-        writer.add_hparams({k: str(v) for k, v in hparams.items()}, 
-                           {'hparam/validation_accuracy': final_val_accuracy, 
-                            'hparam/validation_loss': final_avg_val_loss})
-        writer.close()
-
-    # --- Affichage du rapport final ---
-    print("\n\n" + "="*80)
-    print("TABLEAU RÉCAPITULATIF DE LA GRID SEARCH")
-    print("="*80)
-    
-    if results_for_table:
-        df = pd.DataFrame(results_for_table)
-        df['Val Acc (%)'] = df['Val Acc (%)'].apply(lambda x: f"{x:.2f}")
-        df['Val Loss'] = df['Val Loss'].apply(lambda x: f"{x:.4f}" if not np.isnan(x) else "NaN")
-        df = df.sort_values(by='Val Acc (%)', ascending=False)
-        print(df.to_markdown(index=False))
-    else:
-        print("Aucun résultat n'a pu être collecté.")
-
-    print("\n" + "="*50)
-    print("MEILLEUR RÉSULTAT TROUVÉ")
-    print("="*50)
-    if best_hparams:
-        print(f"🏆 Meilleure accuracy de validation : {best_val_accuracy:.2f}%")
-        print("Hyperparamètres correspondants :")
-        for key, value in best_hparams.items():
-            print(f"  - {key}: {value}")
-    else:
-        print("Aucun essai n'a réussi à produire un résultat valide.")
-    print("="*50)
-    print(f"\n[INFO] Grid search terminée. Lancez 'tensorboard --logdir {log_dir_base}' pour une analyse détaillée.")
-
-
-
+import matplotlib.pyplot as plt
+import torch
+from torchvision import transforms
+from PIL import Image
+import numpy as np
 
 def set_seed(seed: int) -> None:
     """Initialise les seeds (numpy/torch/python). À implémenter."""
@@ -187,3 +32,160 @@ def count_parameters(model) -> int:
 def save_config_snapshot(config: dict, out_dir: str) -> None:
     """Sauvegarde une copie de la config (ex: YAML) dans out_dir. À implémenter."""
     raise NotImplementedError("save_config_snapshot doit être implémentée par l'étudiant·e.")
+
+
+import torch
+import matplotlib.pyplot as plt
+import numpy as np
+from torchvision import transforms
+from PIL import Image
+import yaml
+import os
+import sys
+
+# ============ CHARGER LES DONNÉES ============
+# Chemins
+script_dir = os.path.dirname(os.path.abspath('configs/config.yaml'))
+train_data_path = 'data/preprocessed_dataset_train.pt'
+
+# Charger les données prétraitées
+train_data = torch.load(train_data_path, weights_only=False)
+train_images_preprocessed = train_data['image']  # Tenseur normalisé
+train_labels = train_data['label']
+
+print(f"✓ Données prétraitées chargées")
+print(f"  Shape: {train_images_preprocessed.shape}")
+print(f"  Min: {train_images_preprocessed.min():.4f}, Max: {train_images_preprocessed.max():.4f}")
+print(f"  Mean: {train_images_preprocessed.mean():.4f}, Std: {train_images_preprocessed.std():.4f}")
+
+# ============ CHARGER DONNÉES BRUTES (avant preprocessing) ============
+# Charger les données BRUTES avant normalisation
+raw_data_path = 'data/preprocessed_dataset_train.pt'  # C'est les données brutes sauvegardées
+raw_data = torch.load(raw_data_path, weights_only=False)
+
+# ============ DÉFINIR PIPELINE D'AUGMENTATION ============
+# Reprendre ta configuration
+augmentation_pipeline = transforms.Compose([
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.RandomResizedCrop(size=64, scale=(0.8, 1.0), ratio=(0.75, 1.33)),
+    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2)
+])
+
+# ============ VISUALISATION AVANT/APRÈS ============
+def visualize_preprocessing_augmentation(preprocessed_tensor, idx=0, augmentation_fn=None, num_augmentations=3):
+    """
+    Visualise:
+    1. Image prétraitée (après preprocessing, avant augmentation)
+    2. Plusieurs versions augmentées de la même image
+    """
+    
+    # Image prétraitée (normalisée)
+    img_preprocessed = preprocessed_tensor[idx]  # Shape: (3, 64, 64)
+    
+    # Rescale pour visualisation (les images normalisées sont centrées à 0)
+    img_to_display = img_preprocessed.numpy()
+    img_to_display = (img_to_display - img_to_display.min()) / (img_to_display.max() - img_to_display.min())
+    img_to_display = np.transpose(img_to_display, (1, 2, 0))
+    
+    # Créer la figure
+    n_cols = num_augmentations + 1
+    fig, axes = plt.subplots(1, n_cols, figsize=(4 * n_cols, 4))
+    
+    # Afficher l'image prétraitée
+    axes[0].imshow(img_to_display)
+    axes[0].set_title('Après preprocessing\n(Normalisée)', fontsize=12, fontweight='bold')
+    axes[0].axis('off')
+    
+    # Appliquer augmentation plusieurs fois
+    if augmentation_fn:
+        for aug_idx in range(1, num_augmentations + 1):
+            # Appliquer augmentation
+            img_aug = augmentation_fn(img_preprocessed)
+            
+            # Rescale pour visualisation
+            img_aug_display = img_aug.numpy()
+            img_aug_display = (img_aug_display - img_aug_display.min()) / (img_aug_display.max() - img_aug_display.min())
+            img_aug_display = np.transpose(img_aug_display, (1, 2, 0))
+            
+            axes[aug_idx].imshow(img_aug_display)
+            axes[aug_idx].set_title(f'Augmentation {aug_idx}', fontsize=12)
+            axes[aug_idx].axis('off')
+    
+    plt.tight_layout()
+    plt.show()
+    
+    print(f"\n📊 Statistiques image {idx}:")
+    print(f"  Prétraitée - Min: {img_preprocessed.min():.4f}, Max: {img_preprocessed.max():.4f}")
+    print(f"              Mean: {img_preprocessed.mean():.4f}, Std: {img_preprocessed.std():.4f}")
+
+# ============ AFFICHER MULTIPLE EXEMPLES ============
+print("\n" + "="*60)
+print("VISUALISATION: PREPROCESSING vs AUGMENTATION")
+print("="*60)
+
+# Exemple 1: Image 0
+visualize_preprocessing_augmentation(
+    train_images_preprocessed, 
+    idx=0, 
+    augmentation_fn=augmentation_pipeline,
+    num_augmentations=3
+)
+
+# Exemple 2: Image 1
+visualize_preprocessing_augmentation(
+    train_images_preprocessed, 
+    idx=1, 
+    augmentation_fn=augmentation_pipeline,
+    num_augmentations=3
+)
+
+# ============ COMPARAISON STATISTIQUES ============
+print("\n" + "="*60)
+print("IMPACT DU PREPROCESSING SUR LES STATISTIQUES")
+print("="*60)
+
+# Sélectionner un batch
+batch_idx = slice(0, 32)
+batch_preprocessed = train_images_preprocessed[batch_idx]
+
+print(f"\nBatch (32 images) après preprocessing:")
+print(f"  Min: {batch_preprocessed.min():.4f}")
+print(f"  Max: {batch_preprocessed.max():.4f}")
+print(f"  Mean: {batch_preprocessed.mean(dim=[0, 2, 3])}")  # Mean par canal
+print(f"  Std:  {batch_preprocessed.std(dim=[0, 2, 3])}")   # Std par canal
+
+# ============ GRID VISUALIZATION ============
+print("\n" + "="*60)
+print("GRID: 4 IMAGES PRÉTRAITÉES + AUGMENTATIONS")
+print("="*60)
+
+fig, axes = plt.subplots(4, 4, figsize=(12, 12))
+
+for row in range(4):
+    for col in range(4):
+        img_idx = row * 4 + col
+        
+        if col == 0:
+            # Colonne 0: image prétraitée originale
+            img = train_images_preprocessed[img_idx]
+        else:
+            # Colonnes 1-3: augmentations
+            img = augmentation_pipeline(train_images_preprocessed[img_idx])
+        
+        # Rescale pour visualisation
+        img_display = img.numpy()
+        img_display = (img_display - img_display.min()) / (img_display.max() - img_display.min())
+        img_display = np.transpose(img_display, (1, 2, 0))
+        
+        axes[row, col].imshow(img_display)
+        if col == 0:
+            axes[row, col].set_title(f'Image {row} (Original)', fontsize=10)
+        else:
+            axes[row, col].set_title(f'Aug {col}', fontsize=10)
+        axes[row, col].axis('off')
+
+plt.tight_layout()
+plt.suptitle('Preprocessing (Col 0) vs Augmentations (Col 1-3)', fontsize=14, y=0.995)
+plt.show()
+
+print("\n✓ Visualisation complète!")

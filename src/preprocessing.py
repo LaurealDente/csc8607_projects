@@ -12,6 +12,10 @@ import torch
 import sys
 
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from src import data_loading
+
 
 def save_dataset(images, labels, dataset):
 
@@ -86,8 +90,6 @@ if __name__ == "__main__":
     sys.path.append(script_dir)
     config_path = os.path.join(script_dir, "configs/config.yaml")
 
-
-    from src import data_loading
 
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
