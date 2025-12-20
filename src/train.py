@@ -5,6 +5,7 @@ import src.model as model
 import src.data_loading as data_loading
 import src.augmentation as augmentation
 import src.preprocessing as preprocessing
+import src.utils as utils
 import torch
 import torch.nn as nn
 import math
@@ -13,39 +14,6 @@ from torch.utils.data import Subset, DataLoader
 import time
 import numpy as np
 from tqdm import tqdm
-
-
-class EarlyStopping:
-    def __init__(self, patience=10, min_delta=0.0, path="checkpoint.pt"):
-        """
-        Args:
-            patience (int): Nombre d'époques sans amélioration avant arrêt.
-            min_delta (float): Amélioration minimale considérée significative.
-            path (str): Chemin de sauvegarde du meilleur modèle.
-        """
-        self.patience = patience
-        self.min_delta = min_delta
-        self.path = path
-        self.counter = 0
-        self.best_loss = None
-        self.early_stop = False
-
-    def __call__(self, val_loss, model):
-        if self.best_loss is None:
-            self.best_loss = val_loss
-            self.save_checkpoint(val_loss, model)
-        elif val_loss > self.best_loss - self.min_delta:
-            self.counter += 1
-            print(f"EarlyStopping counter: {self.counter} / {self.patience}")
-            if self.counter >= self.patience:
-                self.early_stop = True
-        else:
-            self.best_loss = val_loss
-            self.save_checkpoint(val_loss, model)
-            self.counter = 0
-
-    def save_checkpoint(self, val_loss, model):
-        torch.save(model.state_dict(), self.path)
 
 
 def overfitting_small(modele, config):
@@ -182,7 +150,7 @@ def train(modele, train_loader, val_loader, config):
 
     patience = config["train"].get("early_stopping_patience", 10)
     best_model_path = os.path.join(artifacts_dir, f"{run_name}_best.pt")
-    early_stopping = EarlyStopping(patience=patience, path=best_model_path)
+    early_stopping = utils.EarlyStopping(patience=patience, path=best_model_path)
 
     epochs = config["train"]["epochs"]
     max_steps = config["train"].get("max_steps", None)

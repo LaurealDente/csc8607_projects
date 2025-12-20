@@ -206,6 +206,8 @@ La loss initiale obtenue est de 5.2958, très proche de la loss théorique, cela
 - **Nombre d’époques** : `100`
 
 > _Insérer capture TensorBoard : `train/loss` montrant la descente vers ~0._
+![alt text](images/image.png)
+Le modèle apprend bien sur le petit ensemble.
 
 **M3.** Donnez la **taille du sous-ensemble**, les **hyperparamètres** du modèle utilisés, et la **courbe train/loss** (capture). Expliquez ce qui prouve l’overfit.
 
