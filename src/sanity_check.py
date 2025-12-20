@@ -60,8 +60,7 @@ def sanity_check(augmentation_pipeline):
     label = train[config["dataset"]["columns"]["label"]]
     train = train[config["dataset"]["columns"]["image"]]
 
-    train_augmente = augmentation.AugmentationDataset(data_path=config["dataset"]["split"]["train"]["chemin"], 
-                                         column=config["dataset"]["columns"]["image"], 
+    train_augmente = augmentation.AugmentationDataset(data_path=config["dataset"]["split"]["train"]["chemin"],
                                          transform=augmentation_pipeline)
     
     indices_to_check = np.random.choice(len(train), 3, replace=False) 
