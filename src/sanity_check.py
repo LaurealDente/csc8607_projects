@@ -79,7 +79,9 @@ def sanity_check(augmentation_pipeline):
     
     premier_batch  = next(iter(loader_augmente))
 
-    print(premier_batch.shape)
+    images, labels = premier_batch
+    print(f"Forme du batch d'images : {images.shape}")
+    print(f"Forme du batch de labels : {labels.shape}")
    
 
 
