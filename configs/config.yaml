@@ -42,13 +42,19 @@ model:
   num_classes: 200
   in_channels: 3
   input_shape: [32,3,64,64]             # ex: [3, 32, 32] ou null
-  hidden_sizes: [64,64,128,256,200]          # ex: [256, 128] ou null
-  residual_blocks : [3,3,3]
-  activation: relu          # ex: relu, gelu, elu, selu, leaky relu
-  dropout: 0.1              # ex: 0.0–0.5
+  hidden_sizes: [64,64,128,256,200]
+  activation: relu       # ex: 0.0–0.5
   stage_widths: [64, 128, 256]
   batch_norm: True         # true/false
   residual: True           # true/false
+  final_test : 
+    model_A :
+      dropout : 0.1
+      blocks_config : [3,3,3] 
+    model_B :
+      dropout : 0.1
+      block_config : [2,2,2]
+
 
 train:
   seed: 42

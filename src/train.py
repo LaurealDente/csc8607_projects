@@ -252,7 +252,6 @@ def train(modele, train_loader, val_loader, config):
     writer.close()
     return modele
 
-
 def main():
     script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     config_path = os.path.join(script_dir, "configs/config.yaml")
@@ -263,47 +262,57 @@ def main():
     parser.add_argument("--max_epochs", type=int, default=None)
     parser.add_argument("--max_steps", type=int, default=None)
     parser.add_argument("--perte_initiale", action="store_true")
-    parser.add_argument("--lr_wd_finder", action="store_true")
     args = parser.parse_args()
 
     try:
         with open(os.path.join(os.getcwd(), args.config), "r") as f:
-            config = yaml.safe_load(f)
+            base_config = yaml.safe_load(f)
     except Exception:
         raise Exception("Mauvais chemin du fichier de configuration : " + os.path.join(os.getcwd(), args.config))
 
-    # Fixer ici la configuration finale pour le rapport
-    config["train"]["optimizer"]["lr"] = 1e-4
-    config["train"]["optimizer"]["weight_decay"] = 1e-4
-    config["train"]["batch_size"] = 32
-    config["train"]["epochs"] = 100
+    # Config commune aux runs finaux
+    base_config["train"]["optimizer"]["lr"] = 1e-4
+    base_config["train"]["optimizer"]["weight_decay"] = 1e-4
+    base_config["train"]["batch_size"] = 32
+    base_config["train"]["epochs"] = 100
 
-    # Choix du modèle A ou B en fonction d'un champ de config
-    # Par exemple: config["model"]["version"] = "A" ou "B"
-    version = config["model"].get("version", "A")
-    if version == "A":
-        config["model"]["dropout"] = 0.1
-        config["model"]["residual_blocks"] = [3, 3, 3]
-    else:
-        config["model"]["dropout"] = 0.1
-        config["model"]["residual_blocks"] = [2, 2, 2]
+    # Variantes finales définies dans le YAML
+    # model.final_test doit être un dict {nom_variant: {dropout: ..., residual_blocks: [...]}}
+    model_variants = base_config["model"]["final_test"]
 
-    preprocessing.get_preprocess_transforms(config)
+    for variant_name, h in model_variants.items():
+        print(f"\n========== Entraînement modèle {variant_name} ==========")
 
-    modele = model.build_model(config)
+        # Copier la config pour ce run
+        config = yaml.safe_load(yaml.dump(base_config))
+        config["model"]["dropout"] = h["dropout"]
+        config["model"]["residual_blocks"] = h["residual_blocks"]
+        config["model"]["version"] = variant_name  # tag éventuel
 
-    augmentation_pipeline = augmentation.get_augmentation_transforms(config)
+        # Préprocess (si déjà fait et données sur disque, coût marginal)
+        preprocessing.get_preprocess_transforms(config)
 
-    train_loader = data_loading.get_dataloaders("train", augmentation_pipeline, config)
-    val_loader = data_loading.get_dataloaders("val", None, config)
+        # Modèle
+        modele = model.build_model(config)
 
-    if args.perte_initiale:
-        _ = perte_premier_batch(modele, train_loader, config)
+        # Augmentation
+        augmentation_pipeline = augmentation.get_augmentation_transforms(config)
 
-    if args.overfit_small:
-        overfitting_small(modele, config)
-    else:
-        train(modele, train_loader, val_loader, config)
+        # DataLoaders train / val
+        train_loader = data_loading.get_dataloaders("train", augmentation_pipeline, config)
+        val_loader = data_loading.get_dataloaders("val", None, config)
+
+        if args.perte_initiale:
+            _ = perte_premier_batch(modele, train_loader, config)
+
+        if args.overfit_small:
+            overfitting_small(modele, config)
+        else:
+            # train() crée un run TensorBoard distinct à chaque appel
+            _ = train(modele, train_loader, val_loader, config)
+
+    print("\nTous les modèles définis dans model.final_test ont été entraînés.")
+
 
 
 if __name__ == "__main__":
