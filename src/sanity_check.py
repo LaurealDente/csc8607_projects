@@ -67,7 +67,7 @@ def sanity_check(augmentation_pipeline):
     indices_to_check = np.random.choice(len(train), 3, replace=False) 
     for i in indices_to_check:
         original_image = train[i]
-        augmented_image = train_augmente[i]
+        augmented_image, _ = train_augmente[i] 
         label_index = label[i]
         
         comparaison(original_image, augmented_image, label_index, index=i)
