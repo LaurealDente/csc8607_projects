@@ -176,7 +176,7 @@ def main():
     # Sous-ensemble stratifié (en fonction de ta fonction de data_loading)
     train_loader_subset = data_loading.create_stratified_subset_loader_manual(
         dataset=full_train_dataset,
-        subset_size=90000,  # à ajuster si besoin en fonction des ressources
+        subset_size=config["train"]["taille_finder"],  # à ajuster si besoin en fonction des ressources
         batch_size=config["train"]["batch_size"],
     )
 

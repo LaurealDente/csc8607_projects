@@ -59,6 +59,7 @@ train:
   overfit_small: false      # true pour sur-apprendre sur un petit échantillon
   overfit_epochs : 100
   finder_start_lr: 1.0e-8 
+  taille_finder: 10000
 
   optimizer:
     name: adam              # sgd/adam/rmsprop
