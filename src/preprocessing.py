@@ -23,13 +23,13 @@ def save_dataset(images, labels, dataset):
         "image": images,
         "label": labels 
     }
-    torch.save(dataset_to_save, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")+ "preprocessed_dataset_" 
+    torch.save(dataset_to_save, os.path.join(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"), "preprocessed_dataset_" 
                 + dataset 
-                + ".pt")
+                + ".pt"))
 
-    print("Preprocessed data saved : " +  os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")+ "preprocessed_dataset_" 
+    print("Preprocessed data saved : " +  os.path.join(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"), "preprocessed_dataset_" 
                 + dataset 
-                + ".pt")
+                + ".pt"))
 
 
 
