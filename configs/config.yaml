@@ -94,7 +94,7 @@ grid_search:
   subset_size:
     train : 10000 
     val : 3000
-  epochs : 200
+  epochs : 15
 
   model:
     B1: 2
