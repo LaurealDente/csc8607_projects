@@ -3,6 +3,8 @@ import yaml
 import os
 import torch
 import json 
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 import sys
@@ -17,37 +19,53 @@ from src.classes import i2d
 
 
 
-def comparaison(original_img, augmented_img, label, index):
+def comparaison(original_img, augmented_img, label_idx, index):
     """
-    Affiche une image originale (PIL) et sa version augmentée (tenseur) côte à côte.
+    Sauvegarde une comparaison (Original vs Augmentée) dans un fichier PNG.
     """
+    # Création du dossier de sauvegarde s'il n'existe pas
+    save_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "artifacts", "sanity_check")
+    os.makedirs(save_dir, exist_ok=True)
 
+    # Récupération du nom du label
     infos_path = os.path.join(os.path.dirname(__file__), 'dataset_infos.json')
-
     with open(infos_path, 'r') as f:
         dataset_infos = json.load(f)
-    label = i2d[dataset_infos["Maysee--tiny-imagenet"]["features"]["label"]["names"][label]]
+    
+    # Conversion du label index -> nom lisible
+    label_name = dataset_infos["Maysee--tiny-imagenet"]["features"]["label"]["names"][label_idx]
+    label_str = i2d.get(label_name, str(label_name)) # Utilise .get pour éviter un crash si clé manquante
 
     fig = plt.figure(figsize=(10, 5))
-    fig.suptitle(f"Comparaison pour l'image {index} - Label: {label}", fontsize=14)
+    fig.suptitle(f"Image {index} - Label: {label_str}", fontsize=14)
     
     # --- Image Originale ---
     plt.subplot(1, 2, 1)
-    original_img = original_img.cpu().numpy().transpose((1, 2, 0))
+    # Conversion Tensor -> Numpy (C, H, W) -> (H, W, C)
+    if torch.is_tensor(original_img):
+        original_img = original_img.cpu().numpy().transpose((1, 2, 0))
     plt.imshow(np.clip(original_img, 0, 1))
     plt.title("Originale")
     plt.axis('off')
     
     # --- Image Augmentée ---
     plt.subplot(1, 2, 2)
-    augmented_img = augmented_img.cpu().numpy().transpose((1, 2, 0))
+    if torch.is_tensor(augmented_img):
+        augmented_img = augmented_img.cpu().numpy().transpose((1, 2, 0))
     plt.imshow(np.clip(augmented_img, 0, 1))
     plt.title("Augmentée")
     plt.axis('off')
 
-
     plt.tight_layout()
-    plt.show()
+    
+    # --- SAUVEGARDE AU LIEU D'AFFICHAGE ---
+    filename = f"check_img_{index}_{label_str}.png"
+    save_path = os.path.join(save_dir, filename)
+    plt.savefig(save_path)
+    plt.close(fig) # Important pour libérer la mémoire
+    
+    print(f"Image sauvegardée : {save_path}")
+
 
 
 def sanity_check(augmentation_pipeline):
