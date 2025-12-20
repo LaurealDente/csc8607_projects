@@ -112,9 +112,14 @@ Le random crop pourrait entraîner une perte d'information sur l'image et faire 
 - **Exemples** après preprocessing/augmentation (insérer 2–3 images/spectrogrammes) :
 
 > _Insérer ici 2–3 captures illustrant les données après transformation._
+![alt text](check_img_77669_pole.png)
+![alt text](check_img_31474_chain.png)
+![alt text](<check_img_70739_dragonfly, darning needle, devil's darning needle, sewing needle, snake feeder, snake doctor, mosquito hawk, skeeter hawk.png>)
+
+
 
 **D10.** Montrez 2–3 exemples et commentez brièvement. 
-
+On voit un changement des couleurs (colorjitter) un recadrage (randomcrop) et un horizontalflip après augmentation des images.
 
 
 **D11.** Donnez la **forme exacte** d’un batch train (ex. `(batch, C, H, W)` ou `(batch, seq_len)`), et vérifiez la cohérence avec `meta["input_shape"]`.
