@@ -179,7 +179,6 @@ def train(modele, train_loader, val_loader, config):
     global_step = 0
 
     for epoch in range(epochs):
-        # --- TRAIN ---
         modele.train()
         running_loss = 0.0
         correct = 0
@@ -209,7 +208,6 @@ def train(modele, train_loader, val_loader, config):
         train_loss = running_loss / total
         train_acc = correct / total
 
-        # --- VAL ---
         modele.eval()
         val_running_loss = 0.0
         val_correct = 0
