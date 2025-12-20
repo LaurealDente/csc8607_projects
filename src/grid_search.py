@@ -33,7 +33,7 @@ def mini_grid_search(data_loader_train, data_loader_val, config, device, num_epo
 
     # Hyperparamètres à tester
     hparams_cfg = config["grid_search"]["hparams"]
-    dropout_options = hparams_cfg["dropout_p"]
+    dropout_options = hparams_cfg["dropout"]
     block_config_options = hparams_cfg["block_config"]
     lr_options = hparams_cfg["lr"]
     wd_options = hparams_cfg["weight_decay"]
