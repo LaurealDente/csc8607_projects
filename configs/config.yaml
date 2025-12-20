@@ -48,10 +48,10 @@ model:
   batch_norm: True         # true/false
   residual: True           # true/false
   final_test : 
-    model_A :
+    A :
       dropout : 0.1
       blocks_config : [3,3,3] 
-    model_B :
+    B :
       dropout : 0.1
       block_config : [2,2,2]
 
