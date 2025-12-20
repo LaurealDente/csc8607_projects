@@ -22,8 +22,9 @@ def comparaison(original_img, augmented_img, label, index):
     Affiche une image originale (PIL) et sa version augmentée (tenseur) côte à côte.
     """
 
-    
-    with open('csc8607_projects/src/dataset_infos.json', 'r') as f:
+    infos_path = os.path.join(os.path.dirname(__file__), 'csc8607_projects/src/dataset_infos.json')
+
+    with open(infos_path, 'r') as f:
         dataset_infos = json.load(f)
     label = i2d[dataset_infos["Maysee--tiny-imagenet"]["features"]["label"]["names"][label]]
 
