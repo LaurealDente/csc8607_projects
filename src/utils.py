@@ -26,27 +26,27 @@ class EarlyStopping:
         self.min_delta = min_delta
         self.path = path
         self.counter = 0
-        self.best_loss = None
+        self.best_acc = None
         self.early_stop = False
 
-    def __call__(self, val_loss, model):
-        if self.best_loss is None:
-            self.best_loss = val_loss
-            self.save_checkpoint(val_loss, model)
-        elif val_loss > self.best_loss - self.min_delta:
+    def __call__(self, val_acc, model):
+        if self.best_acc is None:
+            self.best_acc = val_acc
+            self.save_checkpoint(val_acc, model)
+        elif val_acc < self.best_acc + self.min_delta:
             self.counter += 1
             print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
             if self.counter >= self.patience:
                 self.early_stop = True
         else:
-            self.best_loss = val_loss
-            self.save_checkpoint(val_loss, model)
+            self.best_acc = val_acc
+            self.save_checkpoint(val_acc, model)
             self.counter = 0
 
-    def save_checkpoint(self, val_loss, model):
+    def save_checkpoint(self, val_acc, model):
         '''Sauvegarde le modèle quand la perte de validation diminue.'''
         torch.save(model.state_dict(), self.path)
-        # print(f'Validation loss decreased ({self.best_loss:.6f} --> {val_loss:.6f}).  Saving model ...')
+        # print(f'Validation loss decreased ({self.best_acc:.6f} --> {val_acc:.6f}).  Saving model ...')
 
 
 def set_seed(seed: int) -> None:

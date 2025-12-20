@@ -47,6 +47,7 @@ model:
   stage_widths: [64, 128, 256]
   batch_norm: True         # true/false
   residual: True           # true/false
+  early_stopping_patience : 10
   final_test : 
     A :
       dropout : 0.1

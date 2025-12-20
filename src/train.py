@@ -169,7 +169,10 @@ def train(modele, train_loader, val_loader, config):
     # Early stopping + checkpoint
     patience = config["train"].get("early_stopping_patience", 10)
     best_model_path = os.path.join(artifacts_dir, "best.ckpt")  # chemin demandé
-    early_stopping = utils.EarlyStopping(patience=patience, path=best_model_path)
+    early_stopping = utils.EarlyStopping(
+        patience=patience,
+        path=best_model_path
+    )
 
     max_steps = config["train"].get("max_steps", None)
 
@@ -239,7 +242,7 @@ def train(modele, train_loader, val_loader, config):
         writer.add_scalar("lr", optimizer.param_groups[0]["lr"], epoch)
 
         # Early stopping sur la val_loss
-        early_stopping(val_loss, modele)
+        early_stopping(val_acc, modele)
         if early_stopping.early_stop:
             print("Early stopping déclenché.")
             break
@@ -308,7 +311,6 @@ def main():
         if args.overfit_small:
             overfitting_small(modele, config)
         else:
-            # train() crée un run TensorBoard distinct à chaque appel
             _ = train(modele, train_loader, val_loader, config)
 
     print("\nTous les modèles définis dans model.final_test ont été entraînés.")
