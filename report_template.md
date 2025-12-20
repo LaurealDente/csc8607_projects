@@ -200,7 +200,7 @@ La loss initiale obtenue est de 5.2958, très proche de la loss théorique, cela
 
 ## 3) Overfit « petit échantillon »
 
-- **Sous-ensemble train** : `N = ____` exemples
+- **Sous-ensemble train** : `N = 32(batch)*4 = 128` exemples
 - **Hyperparamètres modèle utilisés** (les 2 à régler) : `dropout = 0.1`, `blocs résiduels = [3,3,3]`
 - **Optimisation** : LR = `0.001`, weight decay = `0` (0 ou très faible recommandé)
 - **Nombre d’époques** : `100`
@@ -220,46 +220,49 @@ Ce comportement prouve l'overfitting car il démontre que le modèle a une capac
 ## 4) LR finder
 
 - **Méthode** : balayage LR (log-scale), quelques itérations, log `(lr, loss)`
-- **Fenêtre stable retenue** : `7.0e-08 → 9.9e-04`
+- **Fenêtre stable retenue** : `5e-05, 0.001`
 - **Choix pour la suite** :
   - **LR** = `0.0001`
-  - **Weight decay** = `1e-05` (valeurs classiques : 1e-5, 1e-4)
+  - **Weight decay** = `0.0001` (valeurs classiques : 1e-5, 1e-4)
 
 > _Insérer capture TensorBoard : courbe LR → loss._
+![alt text](images/image1.png)
 
 **M4.** Justifiez en 2–3 phrases le choix du **LR** et du **weight decay**.
 Classement des combinaisons (de la meilleure à la moins bonne):
 
     Learning Rate  Weight Decay      Loss
-0         0.00010       0.00001  5.058476
-1         0.00010       0.00100  5.061198
-2         0.00010       0.00000  5.073034
-3         0.00005       0.00001  5.124333
-4         0.00005       0.00100  5.128525
-5         0.00010       0.00010  5.130843
-6         0.00005       0.00000  5.145882
-7         0.00050       0.00100  5.148840
-8         0.00005       0.00010  5.152627
-9         0.00050       0.00000  5.154968
-10        0.00050       0.00010  5.194970
-11        0.00100       0.00010  5.198978
-12        0.00100       0.00100  5.210259
-13        0.00050       0.00001  5.216026
-14        0.01000       0.00001  5.254538
-15        0.01000       0.00010  5.269663
-16        0.00100       0.00000  5.269957
-17        0.00500       0.00001  5.271437
-18        0.01000       0.00100  5.281708
-19        0.01000       0.00000  5.299198
-20        0.00500       0.00100  5.314303
-21        0.00500       0.00000  5.319302
-22        0.00001       0.00000  5.327222
-23        0.00001       0.00100  5.328353
-24        0.00001       0.00010  5.329051
-25        0.00001       0.00001  5.334647
-26        0.00500       0.00010  5.343188
-27        0.00100       0.00001  5.343339
----
+0         0.00010       0.00010  4.917492
+1         0.00010       0.00100  4.922086
+2         0.00010       0.00000  4.933328
+3         0.00050       0.00000  4.946052
+4         0.00005       0.00000  4.949200
+5         0.00005       0.00001  4.953540
+6         0.00010       0.00001  4.969391
+7         0.00050       0.00100  4.973272
+8         0.00050       0.00001  4.975122
+9         0.00005       0.00010  4.996401
+10        0.00005       0.00100  5.002882
+11        0.00100       0.00001  5.010468
+12        0.00050       0.00010  5.011736
+13        0.00100       0.00010  5.048988
+14        0.00100       0.00000  5.076625
+15        0.00500       0.00010  5.175845
+16        0.00500       0.00100  5.217700
+17        0.00001       0.00010  5.239484
+18        0.00001       0.00001  5.241861
+19        0.00001       0.00100  5.246126
+20        0.00001       0.00000  5.248262
+21        0.00500       0.00001  5.267686
+22        0.00500       0.00000  5.271379
+23        0.01000       0.00001  5.272518
+24        0.01000       0.00100  5.273110
+25        0.01000       0.00000  5.277072
+26        0.01000       0.00010  5.294584
+27        0.00100       0.00100  5.322229
+
+On observe que LR = 0.0001 et WD = 0.0001 ont la combinaison avec la meilleure performance
+
 
 ## 5) Mini grid search (rapide)
 

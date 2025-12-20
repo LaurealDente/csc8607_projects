@@ -111,8 +111,9 @@ def lr_finder(
 
     trial_idx = 0
 
-    for wd in wd_list:
-        for lr in lr_list:
+
+    for lr in lr_list:
+        for wd in wd_list:
             # Réinitialiser le modèle à son état initial pour chaque essai
             modele.load_state_dict(initial_state)
 
