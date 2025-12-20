@@ -89,8 +89,8 @@ grid_search:
   hparams:
     lr: [0.0001]
     weight_decay: [1.0e-05]
-    dropout_p: [0.3]
-    block_config: [[3, 3, 3]]
+    dropout: [0.1, 0.3]
+    block_config: [[2, 2, 2], [3, 3, 3]]
   subset_size:
     train : 45000 
     test : 5000
