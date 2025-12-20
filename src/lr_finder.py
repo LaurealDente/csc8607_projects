@@ -161,7 +161,6 @@ def lr_finder(
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True, help="Chemin vers le fichier de config YAML")
-    parser.add_argument("--lr_wd_finder", action="store_true", help="Lancer la recherche LR/WD")
     args = parser.parse_args()
 
     # Chargement de la config YAML
@@ -187,21 +186,21 @@ def main():
     learning_rates_to_test = [1e-5, 5e-5, 1e-4, 5e-4, 1e-3, 5e-3, 1e-2]
     weight_decays_to_test = [0.0, 1e-5, 1e-4, 1e-3]
 
-    if args.lr_wd_finder:
-        best_lr, best_wd, stable_window = lr_finder(
-            modele=model.build_model(config),
-            train_dataloader=train_loader_subset,
-            criterion=nn.CrossEntropyLoss(),
-            lr_list=learning_rates_to_test,
-            wd_list=weight_decays_to_test,
-            config=config,
-            epochs_per_trial=1,
-            device=device,
-        )
 
-        print(f"Meilleur LR trouvé : {best_lr:g}")
-        print(f"Meilleur WD trouvé : {best_wd:g}")
-        print(f"Fenêtre LR stable : [{stable_window[0]:g}, {stable_window[1]:g}]")
+    best_lr, best_wd, stable_window = lr_finder(
+        modele=model.build_model(config),
+        train_dataloader=train_loader_subset,
+        criterion=nn.CrossEntropyLoss(),
+        lr_list=learning_rates_to_test,
+        wd_list=weight_decays_to_test,
+        config=config,
+        epochs_per_trial=1,
+        device=device,
+    )
+
+    print(f"Meilleur LR trouvé : {best_lr:g}")
+    print(f"Meilleur WD trouvé : {best_wd:g}")
+    print(f"Fenêtre LR stable : [{stable_window[0]:g}, {stable_window[1]:g}]")
 
 
 if __name__ == "__main__":
