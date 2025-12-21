@@ -25,17 +25,19 @@ preprocess:
   text_tokenizer: null         # pour NLP : nom ou paramètres, sinon null
 
 augment:
-  # data augmentation (laisser null si non utilisée)
   random_flip: true
   random_crop:  
     size: [64, 64]
     scale: [0.8,1.0]
-    ratio: [1.0,1.0]
+    ratio: [0.9,1.1]
   color_jitter:
-    brightness: 0.1
-    contrast: 0.1
-    saturation: 0.1
+    brightness: 0.4
+    contrast: 0.4
+    saturation: 0.4
     hue: 0.1
+  rotation:
+    degrees: 15
+    p: 0.5
 
 model:
   type: Convolutional Neural Network - Residual Network                # ex: "resnet18", "mlp", "lstm", ...
