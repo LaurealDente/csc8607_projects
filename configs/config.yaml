@@ -49,7 +49,6 @@ model:
   stage_widths: [64, 128, 256]
   batch_norm: True         # true/false
   residual: True           # true/false
-  early_stopping_patience : 100
   final_test : 
     A :
       dropout : 0.1
@@ -69,6 +68,7 @@ train:
   overfit_epochs : 100
   finder_start_lr: 1.0e-8 
   taille_finder: 10000
+  early_stopping_patience : 100
 
   optimizer:
     name: adam              # sgd/adam/rmsprop
