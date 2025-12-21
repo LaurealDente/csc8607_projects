@@ -89,24 +89,26 @@ def get_data(config: dict):
     return final_datasets, particularities
 
 
-def get_dataloaders(dataset, augmentation_pipeline, config: dict):
+def get_dataloaders(split: str, augmentation_pipeline, config: dict):  # ← split au lieu de dataset
     """
-    Crée et retourne les DataLoaders d'entraînement/validation/test et des métadonnées.
+    Crée UN DataLoader pour un split spécifique (train/val/test).
     """
     script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if dataset == "train" :
-        data = augmentation.AugmentationDataset(data_path=os.path.join(script_dir,config["dataset"]["split"]["train"]["chemin"]), 
-                                                transform=augmentation_pipeline)
-        data_loader = DataLoader(data, 
-                                batch_size=config["train"]["batch_size"], 
-                                shuffle=True, 
-                                num_workers=config["dataset"]["num_workers"])
-    else :
-        data = augmentation.AugmentationDataset(data_path=os.path.join(script_dir,config["dataset"]["split"][dataset]["chemin"]))
-        data_loader = DataLoader(data, 
-                                batch_size=config["train"]["batch_size"], 
-                                shuffle=False, 
-                                num_workers=config["dataset"]["num_workers"])
+    
+    # Chemin du split demandé
+    data_path = os.path.join(script_dir, config["dataset"]["split"][split]["chemin"])
+    
+    # Transform = augmentation_pipeline SI train, sinon None
+    transform = augmentation_pipeline if split == "train" else None
+    
+    data = augmentation.AugmentationDataset(data_path=data_path, transform=transform)
+    
+    data_loader = DataLoader(
+        data, 
+        batch_size=config["train"]["batch_size"], 
+        shuffle=(split == "train"),  # ← shuffle UNIQUEMENT train
+        num_workers=config["dataset"]["num_workers"]
+    )
     return data_loader
 
 
