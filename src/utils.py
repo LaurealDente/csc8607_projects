@@ -89,7 +89,11 @@ train_images_preprocessed = train_data['image']  # Tenseur normalisé
 train_labels = train_data['label']
 
 print(f"✓ Données prétraitées chargées")
-print(f"  Shape: {train_images_preprocessed.shape}")
+if hasattr(train_images_preprocessed, 'shape'):
+    print(f"  Shape: {train_images_preprocessed.shape}")
+else:
+    print(f"  Type: {type(train_images_preprocessed)}")
+    print(f"  Longueur: {len(train_images_preprocessed)}")
 print(f"  Min: {train_images_preprocessed.min():.4f}, Max: {train_images_preprocessed.max():.4f}")
 print(f"  Mean: {train_images_preprocessed.mean():.4f}, Std: {train_images_preprocessed.std():.4f}")
 
