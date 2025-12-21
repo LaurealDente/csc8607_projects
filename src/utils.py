@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 import torch
 from torchvision import transforms
 from PIL import Image
+import yaml
+import os
 import numpy as np
 
 class EarlyStopping:
@@ -69,162 +71,30 @@ def save_config_snapshot(config: dict, out_dir: str) -> None:
     raise NotImplementedError("save_config_snapshot doit être implémentée par l'étudiant·e.")
 
 
-import torch
-import matplotlib.pyplot as plt
-import numpy as np
-from torchvision import transforms
-from PIL import Image
-import yaml
-import os
-import sys
-
-# ============ CHARGER LES DONNÉES ============
-# Chemins
-script_dir = os.path.dirname(os.path.abspath('configs/config.yaml'))
-train_data_path = 'data/preprocessed_dataset_train.pt'
-
-# Charger les données prétraitées
-train_data = torch.load(train_data_path, weights_only=False)
-train_images_preprocessed = train_data['image']  # Tenseur normalisé
-train_labels = train_data['label']
-
-print(f"✓ Données prétraitées chargées")
-if hasattr(train_images_preprocessed, 'shape'):
-    print(f"  Shape: {train_images_preprocessed.shape}")
-else:
-    print(f"  Type: {type(train_images_preprocessed)}")
-    print(f"  Longueur: {len(train_images_preprocessed)}")
-print(f"  Min: {train_images_preprocessed.min():.4f}, Max: {train_images_preprocessed.max():.4f}")
-print(f"  Mean: {train_images_preprocessed.mean():.4f}, Std: {train_images_preprocessed.std():.4f}")
-
-# ============ CHARGER DONNÉES BRUTES (avant preprocessing) ============
-# Charger les données BRUTES avant normalisation
-raw_data_path = 'data/preprocessed_dataset_train.pt'  # C'est les données brutes sauvegardées
-raw_data = torch.load(raw_data_path, weights_only=False)
-
-# ============ DÉFINIR PIPELINE D'AUGMENTATION ============
-# Reprendre ta configuration
-augmentation_pipeline = transforms.Compose([
-    transforms.RandomHorizontalFlip(p=0.5),
-    transforms.RandomResizedCrop(size=64, scale=(0.8, 1.0), ratio=(0.75, 1.33)),
-    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2)
-])
-
-# ============ VISUALISATION AVANT/APRÈS ============
-def visualize_preprocessing_augmentation(preprocessed_tensor, idx=0, augmentation_fn=None, num_augmentations=3):
-    """
-    Visualise:
-    1. Image prétraitée (après preprocessing, avant augmentation)
-    2. Plusieurs versions augmentées de la même image
-    """
-    
-    # Image prétraitée (normalisée)
-    img_preprocessed = preprocessed_tensor[idx]  # Shape: (3, 64, 64)
-    
-    # Rescale pour visualisation (les images normalisées sont centrées à 0)
-    img_to_display = img_preprocessed.numpy()
-    img_to_display = (img_to_display - img_to_display.min()) / (img_to_display.max() - img_to_display.min())
-    img_to_display = np.transpose(img_to_display, (1, 2, 0))
-    
-    # Créer la figure
-    n_cols = num_augmentations + 1
-    fig, axes = plt.subplots(1, n_cols, figsize=(4 * n_cols, 4))
-    
-    # Afficher l'image prétraitée
-    axes[0].imshow(img_to_display)
-    axes[0].set_title('Après preprocessing\n(Normalisée)', fontsize=12, fontweight='bold')
-    axes[0].axis('off')
-    
-    # Appliquer augmentation plusieurs fois
-    if augmentation_fn:
-        for aug_idx in range(1, num_augmentations + 1):
-            # Appliquer augmentation
-            img_aug = augmentation_fn(img_preprocessed)
-            
-            # Rescale pour visualisation
-            img_aug_display = img_aug.numpy()
-            img_aug_display = (img_aug_display - img_aug_display.min()) / (img_aug_display.max() - img_aug_display.min())
-            img_aug_display = np.transpose(img_aug_display, (1, 2, 0))
-            
-            axes[aug_idx].imshow(img_aug_display)
-            axes[aug_idx].set_title(f'Augmentation {aug_idx}', fontsize=12)
-            axes[aug_idx].axis('off')
-    
-    plt.tight_layout()
-    plt.show()
-    
-    print(f"\n📊 Statistiques image {idx}:")
-    print(f"  Prétraitée - Min: {img_preprocessed.min():.4f}, Max: {img_preprocessed.max():.4f}")
-    print(f"              Mean: {img_preprocessed.mean():.4f}, Std: {img_preprocessed.std():.4f}")
-
-# ============ AFFICHER MULTIPLE EXEMPLES ============
-print("\n" + "="*60)
-print("VISUALISATION: PREPROCESSING vs AUGMENTATION")
-print("="*60)
-
-# Exemple 1: Image 0
-visualize_preprocessing_augmentation(
-    train_images_preprocessed, 
-    idx=0, 
-    augmentation_fn=augmentation_pipeline,
-    num_augmentations=3
-)
-
-# Exemple 2: Image 1
-visualize_preprocessing_augmentation(
-    train_images_preprocessed, 
-    idx=1, 
-    augmentation_fn=augmentation_pipeline,
-    num_augmentations=3
-)
-
-# ============ COMPARAISON STATISTIQUES ============
-print("\n" + "="*60)
-print("IMPACT DU PREPROCESSING SUR LES STATISTIQUES")
-print("="*60)
-
-# Sélectionner un batch
-batch_idx = slice(0, 32)
-batch_preprocessed = train_images_preprocessed[batch_idx]
-
-print(f"\nBatch (32 images) après preprocessing:")
-print(f"  Min: {batch_preprocessed.min():.4f}")
-print(f"  Max: {batch_preprocessed.max():.4f}")
-print(f"  Mean: {batch_preprocessed.mean(dim=[0, 2, 3])}")  # Mean par canal
-print(f"  Std:  {batch_preprocessed.std(dim=[0, 2, 3])}")   # Std par canal
-
-# ============ GRID VISUALIZATION ============
-print("\n" + "="*60)
-print("GRID: 4 IMAGES PRÉTRAITÉES + AUGMENTATIONS")
-print("="*60)
-
-fig, axes = plt.subplots(4, 4, figsize=(12, 12))
-
-for row in range(4):
-    for col in range(4):
-        img_idx = row * 4 + col
+def visualize_data_debug(config_path="configs/config.yaml"):
+    """Debug visuel - À appeler MANUELLEMENT."""
+    try:
+        script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        config = yaml.safe_load(open(os.path.join(script_dir, config_path)))
         
-        if col == 0:
-            # Colonne 0: image prétraitée originale
-            img = train_images_preprocessed[img_idx]
-        else:
-            # Colonnes 1-3: augmentations
-            img = augmentation_pipeline(train_images_preprocessed[img_idx])
+        train_data_path = os.path.join(script_dir, "data/preprocessed_dataset_train.pt")
+        if not os.path.exists(train_data_path):
+            print("❌ Fichiers .pt manquants. Lance preprocessing d'abord.")
+            return
         
-        # Rescale pour visualisation
-        img_display = img.numpy()
-        img_display = (img_display - img_display.min()) / (img_display.max() - img_display.min())
-        img_display = np.transpose(img_display, (1, 2, 0))
+        train_data = torch.load(train_data_path, weights_only=False)
+        train_images = train_data['image']
         
-        axes[row, col].imshow(img_display)
-        if col == 0:
-            axes[row, col].set_title(f'Image {row} (Original)', fontsize=10)
-        else:
-            axes[row, col].set_title(f'Aug {col}', fontsize=10)
-        axes[row, col].axis('off')
-
-plt.tight_layout()
-plt.suptitle('Preprocessing (Col 0) vs Augmentations (Col 1-3)', fontsize=14, y=0.995)
-plt.show()
-
-print("\n✓ Visualisation complète!")
+        print(f"✓ Debug OK - Shape: {train_images.shape}")
+        print(f"  Min: {train_images.min():.4f}, Max: {train_images.max():.4f}")
+        
+        # Pas de plt.show() en SLURM → sauvegarde PNG
+        plt.figure(figsize=(8, 4))
+        plt.hist(train_images.flatten().numpy(), bins=50)
+        plt.title("Distribution pixels normalisés")
+        plt.savefig("debug_data_distrib.png")
+        plt.close()
+        print("📊 Histogramme sauvé: debug_data_distrib.png")
+        
+    except Exception as e:
+        print(f"Debug skipped: {e}")

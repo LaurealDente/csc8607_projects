@@ -54,34 +54,23 @@ def preprocess_dataset(list_pil_img, mean=None, std=None):
 def get_preprocess_transforms(config: dict):
     """Retourne les transformations de pré-traitement. À implémenter."""
     
-    final_datasets, particularities  = data_loading.get_data(config)
-    normalized_datasets = []
-
-    for dataset in final_datasets :
-        if dataset == "train":
-            normalized, mean, std = preprocess_dataset(final_datasets[dataset]["image"])
-            writer = SummaryWriter('csc8607_projects/runs/normalization_check')
-
-            r_values = normalized[:, 0, :, :].detach().cpu().numpy().flatten()
-            g_values = normalized[:, 1, :, :].detach().cpu().numpy().flatten()
-            b_values = normalized[:, 2, :, :].detach().cpu().numpy().flatten()
-
-            writer.add_histogram('Distribution/Red Channel', r_values, global_step=0)
-            writer.add_histogram('Distribution/Green Channel', g_values, global_step=0)
-            writer.add_histogram('Distribution/Blue Channel', b_values, global_step=0)
-
-            writer.close()
-        else :
-            normalized, mean, std = preprocess_dataset(final_datasets[dataset]["image"], mean, std)
-
+    final_datasets, particularities = data_loading.get_data(config)
+    
+    # Préprocess chaque split + sauvegarde
+    for dataset_name in final_datasets:
+        dataset = final_datasets[dataset_name]
         
-        list_of_labels = final_datasets[dataset]['label'] 
-        labels_tensor = torch.tensor(list_of_labels, dtype=torch.int64)
+        if dataset_name == "train":
+            normalized, mean, std = preprocess_dataset(dataset["image"])
+        else:
+            normalized, _, _ = preprocess_dataset(dataset["image"], mean, std)
         
-        normalized_datasets.append(normalized)
-        save_dataset(normalized, labels_tensor, dataset)
-
-    return normalized_datasets
+        labels_tensor = torch.tensor(dataset['label'], dtype=torch.int64)
+        save_dataset(normalized, labels_tensor, dataset_name)
+    
+    
+    print("✓ Données prétraitées sauvées sur disque")
+    return None
 
 
 if __name__ == "__main__":
