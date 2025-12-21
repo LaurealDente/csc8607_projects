@@ -14,7 +14,8 @@ from torch.utils.data import Subset, DataLoader
 import time
 import numpy as np
 from tqdm import tqdm
-from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, LinearLR
+from sklearn.metrics import f1_score
 
 
 def overfitting_small(modele, config):
@@ -75,7 +76,8 @@ def overfitting_small(modele, config):
         writer.add_scalar('Overfit/Train_Loss', avg_epoch_loss, epoch)
         writer.add_scalar('Overfit/Train_Accuracy', epoch_accuracy, epoch)
 
-        print(f"Époque {epoch+1}/{config['train']['overfit_epochs']} | Perte: {avg_epoch_loss:.4f} | Précision: {epoch_accuracy:.2%}")
+        print(f"Époque {epoch+1}/{config['train']['overfit_epochs']} | "
+              f"Perte: {avg_epoch_loss:.4f} | Précision: {epoch_accuracy:.2%}")
 
     print("\nEntraînement 'overfit' terminé.")
     print(f"Les logs sont disponibles dans le dossier : runs/{run_name}")
@@ -83,12 +85,7 @@ def overfitting_small(modele, config):
 
 
 def perte_premier_batch(modele, dataloader, config):
-    """
-    Calcul de la perte sur le premier batch afin d'évaluer sa cohérence
-    Vérification du fonctionnement de la backward propagation
-    """
     writer = SummaryWriter(log_dir="runs/mon_experience_1")
-
     criterion = nn.CrossEntropyLoss()
 
     device = torch.device(config["train"]["device"] if torch.cuda.is_available() else "cpu")
@@ -135,8 +132,8 @@ def perte_premier_batch(modele, dataloader, config):
 
 def train(modele, train_loader, val_loader, config):
     """
-    Entraînement final sur l'ensemble du dataset avec CosineAnnealingLR,
-    early stopping, et sauvegarde du meilleur modèle dans artifacts/best.ckpt.
+    Entraînement final avec warmup + CosineAnnealingWarmRestarts
+    et early stopping basé sur le F1 macro de validation.
     """
     device = torch.device(config["train"]["device"] if torch.cuda.is_available() else "cpu")
     modele.to(device)
@@ -144,13 +141,24 @@ def train(modele, train_loader, val_loader, config):
     optimizer = model.get_optimizer(modele, config)
     criterion = nn.CrossEntropyLoss()
 
-    # Scheduler CosineAnnealing pour l'entraînement complet
     epochs = config["train"]["epochs"]
     base_lr = optimizer.param_groups[0]["lr"]
-    scheduler = CosineAnnealingLR(
+
+    warmup_epochs = config["train"].get("warmup_epochs", 5)
+    first_cycle_epochs = config["train"].get("first_cycle_epochs", 20)
+    t_mult = config["train"].get("t_mult", 2.0)
+
+    warmup_scheduler = LinearLR(
         optimizer,
-        T_max=epochs,
-        eta_min=base_lr / 50.0
+        start_factor=0.1,
+        end_factor=1.0,
+        total_iters=warmup_epochs
+    )
+
+    cosine_scheduler = CosineAnnealingWarmRestarts(
+        optimizer,
+        T_0=first_cycle_epochs,
+        T_mult=t_mult
     )
 
     runs_dir = config["paths"]["runs_dir"]
@@ -166,9 +174,8 @@ def train(modele, train_loader, val_loader, config):
     log_dir = os.path.join(train_root, run_name)
     writer = SummaryWriter(log_dir=log_dir)
 
-    # Early stopping + checkpoint
     patience = config["train"].get("early_stopping_patience", 10)
-    best_model_path = os.path.join(artifacts_dir, "best.ckpt")  # chemin demandé
+    best_model_path = os.path.join(artifacts_dir, "best.ckpt")
     early_stopping = utils.EarlyStopping(
         patience=patience,
         path=best_model_path
@@ -176,8 +183,10 @@ def train(modele, train_loader, val_loader, config):
 
     max_steps = config["train"].get("max_steps", None)
 
-    print(f"Début de l'entraînement sur {device} pour {epochs} époques (early stopping patience={patience}).")
-    print(f"LR initiale = {base_lr}, scheduler = CosineAnnealingLR(T_max={epochs}, eta_min={base_lr/50.0})")
+    print(f"Début de l'entraînement sur {device} pour {epochs} époques "
+          f"(early stopping patience={patience}).")
+    print(f"LR initiale = {base_lr}, warmup_epochs={warmup_epochs}, "
+          f"CosineAnnealingWarmRestarts(T_0={first_cycle_epochs}, T_mult={t_mult})")
 
     global_step = 0
 
@@ -186,6 +195,8 @@ def train(modele, train_loader, val_loader, config):
         running_loss = 0.0
         correct = 0
         total = 0
+        all_train_preds = []
+        all_train_labels = []
 
         for images, labels in tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs} [Train]"):
             images, labels = images.to(device), labels.to(device)
@@ -201,6 +212,9 @@ def train(modele, train_loader, val_loader, config):
             _, predicted = torch.max(outputs.data, 1)
             total += batch_size
             correct += (predicted == labels).sum().item()
+            
+            all_train_preds.extend(predicted.cpu().numpy())
+            all_train_labels.extend(labels.cpu().numpy())
 
             writer.add_scalar("train/loss_step", loss.item(), global_step)
             global_step += 1
@@ -210,11 +224,14 @@ def train(modele, train_loader, val_loader, config):
 
         train_loss = running_loss / total
         train_acc = correct / total
+        train_f1 = f1_score(all_train_labels, all_train_preds, average="macro")
 
         modele.eval()
         val_running_loss = 0.0
         val_correct = 0
         val_total = 0
+        all_preds = []
+        all_labels = []
 
         with torch.no_grad():
             for images, labels in tqdm(val_loader, desc=f"Epoch {epoch+1}/{epochs} [Val]"):
@@ -228,32 +245,49 @@ def train(modele, train_loader, val_loader, config):
                 val_total += batch_size
                 val_correct += (predicted == labels).sum().item()
 
+                all_preds.extend(predicted.cpu().numpy())
+                all_labels.extend(labels.cpu().numpy())
+
         val_loss = val_running_loss / val_total
         val_acc = val_correct / val_total
+        val_f1 = f1_score(all_labels, all_preds, average="macro")
 
-        # Logging epoch
-        print(f"Epoch {epoch+1}: train_loss={train_loss:.4f}, val_loss={val_loss:.4f}, "
-              f"train_acc={train_acc:.2%}, val_acc={val_acc:.2%}")
+        print(
+            f"Epoch {epoch+1}: "
+            f"train_loss={train_loss:.4f}, val_loss={val_loss:.4f}, "
+            f"train_acc={train_acc:.2%}, val_acc={val_acc:.2%}, "
+            f"train_f1={train_f1:.4f}, val_f1={val_f1:.4f}"
+        )
 
+        # Logs TRAIN + VAL par epoch
         writer.add_scalar("train/loss", train_loss, epoch)
-        writer.add_scalar("val/loss", val_loss, epoch)
         writer.add_scalar("train/accuracy", train_acc, epoch)
+        writer.add_scalar("train/f1_macro", train_f1, epoch)
+
+        writer.add_scalar("val/loss", val_loss, epoch)
         writer.add_scalar("val/accuracy", val_acc, epoch)
+        writer.add_scalar("val/f1_macro", val_f1, epoch)
+
         writer.add_scalar("lr", optimizer.param_groups[0]["lr"], epoch)
 
-        # Early stopping sur la val_loss
-        early_stopping(val_acc, modele)
+        # Early stopping basé sur F1
+        early_stopping(val_f1, modele)
         if early_stopping.early_stop:
-            print("Early stopping déclenché.")
+            print("Early stopping déclenché (F1).")
             break
 
-        # Step du scheduler après l'epoch
-        scheduler.step()
+        # Schedulers : warmup puis cosine + restarts
+        if epoch < warmup_epochs:
+            warmup_scheduler.step()
+        else:
+            cosine_scheduler.step(epoch - warmup_epochs)
 
-    print("Chargement du meilleur modèle sauvegardé...")
+
+    print("Chargement du meilleur modèle sauvegardé (F1 max)...")
     modele.load_state_dict(torch.load(best_model_path))
     writer.close()
     return modele
+
 
 def main():
     script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -271,37 +305,30 @@ def main():
         with open(os.path.join(os.getcwd(), args.config), "r") as f:
             base_config = yaml.safe_load(f)
     except Exception:
-        raise Exception("Mauvais chemin du fichier de configuration : " + os.path.join(os.getcwd(), args.config))
+        raise Exception("Mauvais chemin du fichier de configuration : " +
+                        os.path.join(os.getcwd(), args.config))
 
-    # Config commune aux runs finaux
     base_config["train"]["optimizer"]["lr"] = 1e-4
     base_config["train"]["optimizer"]["weight_decay"] = 1e-4
     base_config["train"]["batch_size"] = 32
     base_config["train"]["epochs"] = 100
 
-    # Variantes finales définies dans le YAML
-    # model.final_test doit être un dict {nom_variant: {dropout: ..., residual_blocks: [...]}}
     model_variants = base_config["model"]["final_test"]
 
     for variant_name, h in model_variants.items():
         print(f"\n========== Entraînement modèle {variant_name} ==========")
 
-        # Copier la config pour ce run
         config = yaml.safe_load(yaml.dump(base_config))
         config["model"]["dropout"] = h["dropout"]
         config["model"]["residual_blocks"] = h["residual_blocks"]
-        config["model"]["version"] = variant_name  # tag éventuel
+        config["model"]["version"] = variant_name
 
-        # Préprocess (si déjà fait et données sur disque, coût marginal)
         preprocessing.get_preprocess_transforms(config)
 
-        # Modèle
         modele = model.build_model(config)
 
-        # Augmentation
         augmentation_pipeline = augmentation.get_augmentation_transforms(config)
 
-        # DataLoaders train / val
         train_loader = data_loading.get_dataloaders("train", augmentation_pipeline, config)
         val_loader = data_loading.get_dataloaders("val", None, config)
 
@@ -314,7 +341,6 @@ def main():
             _ = train(modele, train_loader, val_loader, config)
 
     print("\nTous les modèles définis dans model.final_test ont été entraînés.")
-
 
 
 if __name__ == "__main__":

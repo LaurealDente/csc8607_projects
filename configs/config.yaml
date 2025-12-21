@@ -69,6 +69,9 @@ train:
   finder_start_lr: 1.0e-8 
   taille_finder: 10000
   early_stopping_patience : 100
+  warmup_epochs: 5
+  first_cycle_epochs: 20
+  t_mult: 2
 
   optimizer:
     name: adam              # sgd/adam/rmsprop
