@@ -162,7 +162,7 @@ def train(modele, train_loader, val_loader, config):
     )
 
     runs_dir = config["paths"]["runs_dir"]
-    artifacts_dir = config["paths"]["artifacts_dir"]
+    artifacts_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), config["paths"]["runs_dir"])
     os.makedirs(runs_dir, exist_ok=True)
     os.makedirs(artifacts_dir, exist_ok=True)
 
@@ -175,7 +175,7 @@ def train(modele, train_loader, val_loader, config):
     writer = SummaryWriter(log_dir=log_dir)
 
     patience = config["train"].get("early_stopping_patience", 10)
-    best_model_path = os.path.join(artifacts_dir, "best.ckpt")
+    best_model_path = os.path.join(artifacts_dir, f"best{time.strftime('%Y%m%d-%H%M%S')}.ckpt")
     early_stopping = utils.EarlyStopping(
         patience=patience,
         path=best_model_path
