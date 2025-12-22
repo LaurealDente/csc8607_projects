@@ -20,6 +20,9 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import pandas as pd
 import yaml
+import numpy as np
+
+from sklearn.metrics import f1_score
 
 from src import model, augmentation, data_loading
 
@@ -203,7 +206,6 @@ def mini_grid_final(data_loader_train, data_loader_val, config, device, num_epoc
     4) Dropout plus grand
     → On ne change qu'un hyperparamètre à la fois.
     """
-    from sklearn.metrics import f1_score
 
     all_results = []
 
