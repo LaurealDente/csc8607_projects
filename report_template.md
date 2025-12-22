@@ -314,13 +314,40 @@ Avec ce classement des meilleurs résultats lors du grid search. Nous voyons cla
   - Époques = `100` (10–20)
 - **Checkpoint** : `artifacts/best.ckpt` (selon meilleure métrique val)
 
+
 > _Insérer captures TensorBoard :_
+
+Bleu Modele A
+Rose Modele B
+
+Train :
+![alt text](image3.png)
+![alt text](image4.png)
+![alt text](image5.png)
+![alt text](image6.png)
+
+Val :
+![alt text](image7.png)
+![alt text](image8.png)
+![alt text](image9.png)
+
+
+On observe une meilleure performance du modèle A
+
+
 > - `train/loss`, `val/loss`
 > - `val/accuracy` **ou** `val/f1` (classification)
 
 **M6.** Montrez les **courbes train/val** (loss + métrique). Interprétez : sous-apprentissage / sur-apprentissage / stabilité d’entraînement.
 
+Il n'y a pas de sous apprentissage car on voit les courbes d'accuracy monter puis redescendre ou se stabiliser (pour le val) alors que le train continue à monter (début de sur apprentissage).
+
+Un début de sur apprentissage apparait malgré les paramètres d'augmentation. Il pourrait être intéressant d'essayer avec des parametres d'augmentation plus aggressifs, grâce à l'enregistrement de la meilleure version, nous avons les poids optimaux.
+
+Le modèle A reste stable jusqu'au bout alors que le modèle B arrête de l'être autour de la 20ème itération. Cela peut venir d'un LR trop grand pour la taille du réseau ou bien simplement le fait que la capacité du modèle ne permet pas de performer sur la tâche.
+
 ---
+
 
 ## 7) Comparaisons de courbes (analyse)
 
@@ -331,6 +358,8 @@ Avec ce classement des meilleurs résultats lors du grid search. Nous voyons cla
 - **Variation des 2 hyperparamètres de modèle** (convergence, plateau, surcapacité)
 
 **M7.** Trois **comparaisons** commentées (une phrase chacune) : LR, weight decay, hyperparamètres modèle — ce que vous attendiez vs. ce que vous observez.
+
+
 
 ---
 
