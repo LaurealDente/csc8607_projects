@@ -3,8 +3,8 @@
 
 Exécution :
     python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/bestof_Modele_A.ckpt --model A
-    python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/bestof_Modele_B.ckpt --model B  
-    python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/bestof_Special.ckpt --model Special
+
+Résultats sauvés automatiquement en JSON : results/eval_<model>_<timestamp>.json
 """
 
 import argparse
@@ -15,10 +15,25 @@ import torch.nn as nn
 from tqdm import tqdm
 import numpy as np
 from sklearn.metrics import f1_score, confusion_matrix, classification_report
-
+import json
+from datetime import datetime
 import src.model as model
 import src.data_loading as data_loading
 import src.preprocessing as preprocessing
+
+
+def save_results_json(results_dict, model_name, checkpoint_name):
+    """Sauvegarde les résultats en JSON."""
+    os.makedirs("results", exist_ok=True)
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_filename = f"results/eval_{model_name}_{timestamp}.json"
+    
+    with open(output_filename, "w") as f:
+        json.dump(results_dict, f, indent=2)
+    
+    print(f"✅ Résultats sauvés : {output_filename}")
+    return output_filename
 
 
 def load_config(config_path: str):
@@ -30,10 +45,6 @@ def load_config(config_path: str):
 
 
 def build_model_from_config(config, model_variant: str = "A"):
-    """
-    Reconstruit le modèle selon le variant spécifié (A, B, Special).
-    """
-    # Vérifier que le variant existe
     model_variants = config["model"]["final_test"]
     if model_variant not in model_variants:
         available = list(model_variants.keys())
@@ -41,7 +52,6 @@ def build_model_from_config(config, model_variant: str = "A"):
     
     print(f">>> Construction du modèle '{model_variant}' : {model_variants[model_variant]}")
     
-    # Copier la config et appliquer les hyperparams du variant
     config_variant = yaml.safe_load(yaml.dump(config))
     hparams = model_variants[model_variant]
     
@@ -54,7 +64,6 @@ def build_model_from_config(config, model_variant: str = "A"):
 
 
 def get_test_loader(config):
-    """DataLoader test sans augmentation."""
     preprocessing.get_preprocess_transforms(config)
     test_loader = data_loading.get_dataloaders("test", None, config)
     return test_loader
@@ -127,7 +136,7 @@ def main():
     # 5. Évaluer
     test_loss, test_acc, test_f1, cm, y_true, y_pred = evaluate(net, test_loader, device)
 
-    # 6. Résultats
+    # 6. Résultats console
     print("\n" + "="*50)
     print("RÉSULTATS SUR LE JEU DE TEST")
     print("="*50)
@@ -138,10 +147,35 @@ def main():
     print("="*50)
 
     print(f"\nMatrice de confusion ({cm.shape[0]} classes):")
-    print(cm[:10, :10], "..." if cm.shape[0] > 10 else "")  # Top-left corner
+    print(cm[:10, :10], "..." if cm.shape[0] > 10 else "")
 
     print("\nRapport détaillé :")
     print(classification_report(y_true, y_pred, digits=4))
+
+    # 7. Sauvegarde JSON
+    results = {
+        "metadata": {
+            "model_variant": args.model,
+            "checkpoint": args.checkpoint,
+            "config": args.config,
+            "device": str(device),
+            "timestamp": datetime.now().isoformat(),
+            "test_samples": len(y_true)
+        },
+        "metrics": {
+            "test_loss": float(test_loss),
+            "test_accuracy": float(test_acc),
+            "test_f1_macro": float(test_f1)
+        },
+        "predictions": {
+            "y_true": y_true,
+            "y_pred": y_pred
+        },
+        "confusion_matrix": cm.tolist()
+    }
+    
+    json_path = save_results_json(results, args.model, os.path.basename(args.checkpoint))
+    print(f"\n📊 Tous les résultats sont disponibles dans : {json_path}")
 
 
 if __name__ == "__main__":
