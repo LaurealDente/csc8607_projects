@@ -318,13 +318,16 @@ Avec ce classement des meilleurs résultats lors du grid search. Nous voyons cla
 > _Insérer captures TensorBoard :_
 
 Bleu Modele A
-Rose Modele B
+Vert Modele B
 
 Train :
 ![alt text](images/image3.png)
 ![alt text](images/image4.png)
 ![alt text](images/image5.png)
+
+LR : 
 ![alt text](images/image6.png)
+Utilisation de Cosine
 
 Val :
 ![alt text](images/image7.png)
@@ -340,7 +343,7 @@ On observe une meilleure performance du modèle A
 
 **M6.** Montrez les **courbes train/val** (loss + métrique). Interprétez : sous-apprentissage / sur-apprentissage / stabilité d’entraînement.
 
-Il n'y a pas de sous apprentissage car on voit les courbes d'accuracy monter puis redescendre ou se stabiliser (pour le val) alors que le train continue à monter (début de sur apprentissage).
+Il n'y a pas de sous apprentissage car on voit les courbes d'accuracy monter puis redescendre ou se stabiliser (pour le val) et le loss remonter alors que le train continue à monter (début de sur apprentissage).
 
 Un début de sur apprentissage apparait malgré les paramètres d'augmentation. Il pourrait être intéressant d'essayer avec des parametres d'augmentation plus aggressifs, grâce à l'enregistrement de la meilleure version, nous avons les poids optimaux.
 
@@ -409,13 +412,22 @@ Dropout haut :
 ## 8) Itération supplémentaire (si temps)
 
 - **Changement(s)** : `Augmentation encore plus aggressif et plus grand dropout car on a vu que cela fonctionnait bien` (resserrage de grille, nouvelle valeur d’un hyperparamètre, etc.)
-- **Résultat** : `_____` (val metric, tendances des courbes)
+- **Résultat** : `0.372 F1 Score` (val metric, tendances des courbes)
 
 **M8.** Décrivez cette itération, la motivation et le résultat.
 
-La motivation de cette itération est de voir si l'on peut, avec un warmup, un restart du lr etc si on peut améliorer les performances de notre modèle sans ajouter de blocks. Simplement en étant plus aggressif dans notre stratégie. La performance vient principalement du fait qu'à la suite des variations des paramétrages on voyait dropout apprendre encore.
+La motivation de cette itération est de voir si on peut, avec un warmup, un restart du lr etc améliorer les performances de notre modèle sans ajouter de blocks. Simplement en étant plus aggressif dans notre stratégie. 
 
+La possibilité de performance vient principalement du fait qu'à la suite des variations des paramétrages on voyait dropout apprendre encore.
 
+![alt text](image.png)
+
+![alt text](image-1.png)
+
+![alt text](image-2.png)
+
+Grâce à ces graphiques nous observons la différence de performance entre les modèles A et B et le modèle Spécial qui est plus aggressif que les autres. On observe qu'il est plus stable dans son apprentissage et continue d'apprendre à presque 200 épochs (coupure slurm).
+Cela nous promet de bonnes performances en le poussant jusqu'au bout.
 
 
 ---
