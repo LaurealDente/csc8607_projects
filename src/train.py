@@ -161,8 +161,8 @@ def train(modele, train_loader, val_loader, config):
         T_mult=t_mult
     )
 
-    runs_dir = config["paths"]["runs_dir"]
-    artifacts_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), config["paths"]["runs_dir"])
+    runs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), config["paths"]["runs_dir"])
+    artifacts_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), config["paths"]["artifacts_dir"])
     os.makedirs(runs_dir, exist_ok=True)
     os.makedirs(artifacts_dir, exist_ok=True)
 
@@ -299,6 +299,8 @@ def main():
     parser.add_argument("--max_epochs", type=int, default=None)
     parser.add_argument("--max_steps", type=int, default=None)
     parser.add_argument("--perte_initiale", action="store_true")
+    parser.add_argument("--final_run", action="store_true",
+                        help="Utilise la configuration finale (train_final/model_final/augment_final)")
     args = parser.parse_args()
 
     try:
@@ -308,27 +310,35 @@ def main():
         raise Exception("Mauvais chemin du fichier de configuration : " +
                         os.path.join(os.getcwd(), args.config))
 
-    base_config["train"]["optimizer"]["lr"] = 1e-4
-    base_config["train"]["optimizer"]["weight_decay"] = 1e-4
-    base_config["train"]["batch_size"] = 32
-    base_config["train"]["epochs"] = 100
+    # Choix de la section d’hparams à utiliser
+    if args.final_run:
+        print(">>> Utilisation de la configuration FINALE (train_final/model_final/augment_final)")
+        train_cfg = base_config["train_final"]
+        model_cfg = base_config["model_final"]
+        augment_cfg = base_config["augment_final"]
+    else:
+        print(">>> Utilisation de la configuration CLASSIQUE (train/model/augment)")
+        train_cfg = base_config["train"]
+        model_cfg = base_config["model"]
+        augment_cfg = base_config["augment"]
 
-    model_variants = base_config["model"]["final_test"]
+    # Injecter ces sous-configs dans base_config pour le reste du code
+    base_config["train"].update(train_cfg)
+    base_config["model"].update(model_cfg)
+    base_config["augment"].update(augment_cfg)
 
-    for variant_name, h in model_variants.items():
-        print(f"\n========== Entraînement modèle {variant_name} ==========")
+    # Hyperparams globaux (peuvent déjà être dans train_cfg)
+    base_config["train"]["batch_size"] = train_cfg.get("batch_size", 32)
+    base_config["train"]["epochs"] = train_cfg.get("epochs", 100)
 
-        config = yaml.safe_load(yaml.dump(base_config))
-        config["model"]["dropout"] = h["dropout"]
-        config["model"]["residual_blocks"] = h["residual_blocks"]
-        config["model"]["version"] = variant_name
+    # UN SEUL modèle dans le cas final, ou boucle A/B dans le cas classique
+    if args.final_run:
+        print("\n========== Entraînement modèle FINAL ==========")
+        config = base_config
 
         preprocessing.get_preprocess_transforms(config)
-
         modele = model.build_model(config)
-
         augmentation_pipeline = augmentation.get_augmentation_transforms(config)
-
         train_loader = data_loading.get_dataloaders("train", augmentation_pipeline, config)
         val_loader = data_loading.get_dataloaders("val", None, config)
 
@@ -339,8 +349,34 @@ def main():
             overfitting_small(modele, config)
         else:
             _ = train(modele, train_loader, val_loader, config)
+    else:
+        # mode classique : boucle sur model.final_test (A, B, ...)
+        model_variants = base_config["model"]["final_test"]
 
-    print("\nTous les modèles définis dans model.final_test ont été entraînés.")
+        for variant_name, h in model_variants.items():
+            print(f"\n========== Entraînement modèle {variant_name} ==========")
+
+            config = yaml.safe_load(yaml.dump(base_config))
+            config["model"]["dropout"] = h["dropout"]
+            config["model"]["residual_blocks"] = h["residual_blocks"]
+            config["model"]["version"] = variant_name
+
+            preprocessing.get_preprocess_transforms(config)
+            modele = model.build_model(config)
+            augmentation_pipeline = augmentation.get_augmentation_transforms(config)
+            train_loader = data_loading.get_dataloaders("train", augmentation_pipeline, config)
+            val_loader = data_loading.get_dataloaders("val", None, config)
+
+            if args.perte_initiale:
+                _ = perte_premier_batch(modele, train_loader, config)
+
+            if args.overfit_small:
+                overfitting_small(modele, config)
+            else:
+                _ = train(modele, train_loader, val_loader, config)
+
+    print("\nEntraînement terminé.")
+
 
 
 if __name__ == "__main__":

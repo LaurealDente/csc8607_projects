@@ -321,15 +321,15 @@ Bleu Modele A
 Rose Modele B
 
 Train :
-![alt text](image3.png)
-![alt text](image4.png)
-![alt text](image5.png)
-![alt text](image6.png)
+![alt text](images/image3.png)
+![alt text](images/image4.png)
+![alt text](images/image5.png)
+![alt text](images/image6.png)
 
 Val :
-![alt text](image7.png)
-![alt text](image8.png)
-![alt text](image9.png)
+![alt text](images/image7.png)
+![alt text](images/image8.png)
+![alt text](images/image9.png)
 
 
 On observe une meilleure performance du modèle A
@@ -359,16 +359,64 @@ Le modèle A reste stable jusqu'au bout alors que le modèle B arrête de l'êtr
 
 **M7.** Trois **comparaisons** commentées (une phrase chacune) : LR, weight decay, hyperparamètres modèle — ce que vous attendiez vs. ce que vous observez.
 
+Baseline :
+  Pour cette comparaison, j'ai tout d'abord fait tourné le modèle initial afin d'avoir un élément de comparaison (run sans warmup et scheduler).
+  On obtient un score F1 pique à 0.266152.
+  ![alt text](images/image10.png)
+
+
+LR haut :
+  J'ai augmenté le LR pour voir si mon modèle apprenait plus vite, au moins au début, avec un LR plus haut.
+  ![alt text](images/image11.png)
+  Au lieu d'accélérer comme je pensais, le learning rate a été moins performant de A à Z.
+
+WD haut : 
+  En pensant pouvoir appliquer une meilleure généralisation du modèle, j'ai essayé avec un weight decay plus haut.
+  ![alt text](images/image12.png)
+  On voit bien que la performance du weight decay plus haut est inférieure à la performance de la baseline (0.18 au lieu de 0.26)
+  La généralisation peut peut etre mieux apparaître sur un plus grand nombre d'epochs.
+
+Blocks haut : 
+  En sortant un peu du chemin indiqué dans l'énoncé j'ai voulu voir la performance du modèle si on ajoutait des blocks résiduels aux couches (4,4,4)
+  ![alt text](images/image13.png)
+  On constate que le modèle apprend légèrement mieux mais ce n'est pas si convaincant (0.26279)
+
+Dropout haut : 
+  En élevant le dropout, je pensais stabiliser le modèle pour réduire l'overfitting.
+  ![alt text](images/image14.png)
+  Le maximum est atteint vers la fin des 100 epochs ce qui montre la stabilité que procure ce dropout plus haut même s'il reste inférieur sur l'entierté de l'entraînement, c'est le seul qui n'overfit pas encore. La courbe continue de croitre, doucement mais elle croie.
+
+
+
+=================================================
+        RÉCAPITULATIF FINAL DES PERFORMANCES (GRID FINALE)
+==================================================
+| Exp_name     |   Epoch | Blocks    |   Dropout |     LR |     WD |   Train_Loss |   Train_Acc |   Train_F1 |   Val_Loss |   Val_Acc |     Val_F1 | Notes   |
+|:-------------|--------:|:----------|----------:|-------:|-------:|-------------:|------------:|-----------:|-----------:|----------:|-----------:|:--------|
+| baseline     |      56 | [3, 3, 3] |       0.1 | 0.0001 | 0.0001 |     1.98263  |      0.5204 | 0.51039    |    3.27661 | 0.279667  | 0.266152   |         |
+
+| blocks_high  |      52 | [4, 4, 4] |       0.1 | 0.0001 | 0.0001 |     1.77169  |      0.5659 | 0.557088   |    3.26334 | 0.273333  | 0.26279    |         |
+
+| dropout_high |      97 | [3, 3, 3] |       0.3 | 0.0001 | 0.0001 |     2.29538  |      0.4345 | 0.421385   |    3.27511 | 0.267333  | 0.250162   |         |
+
+| lr_high      |      41 | [3, 3, 3] |       0.1 | 0.0005 | 0.0001 |     2.17922  |      0.4492 | 0.437079   |    3.6431  | 0.218     | 0.203994   |         |
+
+| wd_high      |      57 | [3, 3, 3] |       0.1 | 0.0001 | 0.001  |     3.40785  |      0.2465 | 0.213238   |    3.6049  | 0.212333  | 0.18273    |         |
 
 
 ---
 
 ## 8) Itération supplémentaire (si temps)
 
-- **Changement(s)** : `_____` (resserrage de grille, nouvelle valeur d’un hyperparamètre, etc.)
+- **Changement(s)** : `Augmentation encore plus aggressif et plus grand dropout car on a vu que cela fonctionnait bien` (resserrage de grille, nouvelle valeur d’un hyperparamètre, etc.)
 - **Résultat** : `_____` (val metric, tendances des courbes)
 
 **M8.** Décrivez cette itération, la motivation et le résultat.
+
+La motivation de cette itération est de voir si l'on peut, avec un warmup, un restart du lr etc si on peut améliorer les performances de notre modèle sans ajouter de blocks. Simplement en étant plus aggressif dans notre stratégie. La performance vient principalement du fait qu'à la suite des variations des paramétrages on voyait dropout apprendre encore.
+
+
+
 
 ---
 

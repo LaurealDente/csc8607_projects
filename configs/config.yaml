@@ -133,3 +133,38 @@ grid_search:
 paths:
   runs_dir: "./runs"
   artifacts_dir: "./artifacts"
+
+
+train_final:
+  device: cuda
+  optimizer:
+    lr: 0.0001 =
+    weight_decay: 0.0001 
+  batch_size: 32
+  epochs: 200
+  warmup_epochs: 5
+  first_cycle_epochs: 30
+  t_mult: 2.0
+  early_stopping_patience: 200
+  max_steps: null
+
+augment_final:
+  random_flip: true
+  random_crop:
+    size: [64, 64]
+    scale: [0.60, 1.2]
+    ratio: [0.9, 1.1]
+  color_jitter:
+    brightness: 0.8
+    contrast: 0.8
+    saturation: 0.8
+    hue: 0.1
+
+model_final:
+  num_classes: 200
+  residual: true
+  batch_norm: true
+  activation: relu
+  residual_blocks: [3, 3, 3]
+  dropout: 0.3
+  version: "FINAL"
