@@ -1,10 +1,11 @@
 """
 Évaluation du modèle sur le jeu de test.
 
+
 Exécution :
     python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/bestof_Modele_A.ckpt --model A
-
-Résultats sauvés automatiquement en JSON : results/eval_<model>_<timestamp>.json
+    python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/bestof_Modele_B.ckpt --model B  
+    python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/bestof_Special.ckpt --model Special
 """
 
 import argparse
@@ -167,11 +168,9 @@ def main():
             "test_accuracy": float(test_acc),
             "test_f1_macro": float(test_f1)
         },
-        "predictions": {
-            "y_true": y_true,
-            "y_pred": y_pred
-        },
-        "confusion_matrix": cm.tolist()
+        # Sauvegarde LIGHT : métriques + top de la matrice de confusion
+        "confusion_matrix_top10": cm[:10, :10].tolist(),  # Seulement top-left
+        "confusion_matrix_shape": [cm.shape[0], cm.shape[1]]
     }
     
     json_path = save_results_json(results, args.model, os.path.basename(args.checkpoint))
