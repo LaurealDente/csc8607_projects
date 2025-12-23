@@ -149,7 +149,7 @@ def get_optimizer(model, config, weight_decay=None, lr=None):
     wd_to_use = weight_decay if weight_decay is not None else config["train"]["optimizer"].get("weight_decay", 0)
     lr_to_use = lr if lr is not None else config["train"]["optimizer"]["lr"]
 
-    optimizer_name = config["train"]["optimizer"]["name"]
+    optimizer_name = config["train"]["optimizer"].get("name", "AdamW")
     
     if optimizer_name == 'AdamW':
         return torch.optim.AdamW(model.parameters(), lr=lr_to_use, weight_decay=wd_to_use)

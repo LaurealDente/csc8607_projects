@@ -1,7 +1,7 @@
 dataset:
-  name: imagenet                # ex: "CIFAR10", "IMDB", ...
-  root: "zh-plus/tiny-imagenet"            # chemin local pour les données
-  split:                    # optionnel : noms/tailles de splits
+  name: imagenet
+  root: "zh-plus/tiny-imagenet"
+  split:
     train:
       p: 0.9
       chemin: data/preprocessed_dataset_train.pt
@@ -11,7 +11,7 @@ dataset:
     test: 
       p: 0.1
       chemin: data/preprocessed_dataset_test.pt
-  download: true            # si supporté
+  download: true
   num_workers: 8
   shuffle: true
   columns:
@@ -19,10 +19,10 @@ dataset:
     image : image
 
 preprocess:
-  # transformations de base (ex: resize, normalize)
-  resize: null                   # ex: [32, 32] ou null
+
+  resize: null
   normalize: True
-  text_tokenizer: null         # pour NLP : nom ou paramètres, sinon null
+  text_tokenizer: null
 
 augment:
   random_flip: true
@@ -40,15 +40,15 @@ augment:
     p: 0.5
 
 model:
-  type: Convolutional Neural Network - Residual Network                # ex: "resnet18", "mlp", "lstm", ...
+  type: Convolutional Neural Network - Residual Network 
   num_classes: 200
   in_channels: 3
-  input_shape: [32,3,64,64]             # ex: [3, 32, 32] ou null
+  input_shape: [32,3,64,64]
   hidden_sizes: [64,64,128,256,200]
-  activation: relu       # ex: 0.0–0.5
+  activation: relu
   stage_widths: [64, 128, 256]
-  batch_norm: True         # true/false
-  residual: True           # true/false
+  batch_norm: True
+  residual: True
   final_test : 
     A :
       dropout : 0.1
@@ -73,11 +73,11 @@ grid_final:
 
 train:
   seed: 42
-  device: cuda              # "cpu", "cuda", ou "auto"
+  device: cuda
   batch_size: 32
   epochs: 100
-  max_steps: null           # entier ou null
-  overfit_small: false      # true pour sur-apprendre sur un petit échantillon
+  max_steps: null
+  overfit_small: false
   overfit_epochs : 100
   finder_start_lr: 1.0e-8 
   taille_finder: 10000
