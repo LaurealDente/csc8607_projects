@@ -1,19 +1,10 @@
 """
-Évaluation — à implémenter.
-
-Doit exposer un main() exécutable via :
-    python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/best.ckpt
-
-Exigences minimales :
-- charger le modèle et le checkpoint
-- calculer et afficher/consigner les métriques de test
-"""
-
-"""
 Évaluation du modèle sur le jeu de test.
 
 Exécution :
-    python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/best.ckpt
+    python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/bestof_Modele_A.ckpt --model A
+    python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/bestof_Modele_B.ckpt --model B  
+    python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/bestof_Special.ckpt --model Special
 """
 
 import argparse
@@ -38,56 +29,56 @@ def load_config(config_path: str):
     return config
 
 
-def build_model_from_config(config):
+def build_model_from_config(config, model_variant: str = "A"):
     """
-    Reconstruit le même modèle qu'en train.py.
-    Si tu utilises train_final/model_final, la config doit déjà être cohérente.
+    Reconstruit le modèle selon le variant spécifié (A, B, Special).
     """
-    # Ici on suppose que train.py a déjà fusionné train/train_final, model/model_final, etc.
-    # Si ce n'est pas le cas, reproduis la logique de fusion de train.py ici.
-    net = model.build_model(config)
+    # Vérifier que le variant existe
+    model_variants = config["model"]["final_test"]
+    if model_variant not in model_variants:
+        available = list(model_variants.keys())
+        raise ValueError(f"Modèle '{model_variant}' inconnu. Disponibles : {available}")
+    
+    print(f">>> Construction du modèle '{model_variant}' : {model_variants[model_variant]}")
+    
+    # Copier la config et appliquer les hyperparams du variant
+    config_variant = yaml.safe_load(yaml.dump(config))
+    hparams = model_variants[model_variant]
+    
+    config_variant["model"]["dropout"] = hparams["dropout"]
+    config_variant["model"]["residual_blocks"] = hparams["residual_blocks"]
+    config_variant["model"]["version"] = model_variant
+    
+    net = model.build_model(config_variant)
     return net
 
 
 def get_test_loader(config):
-    """
-    Récupère le DataLoader du jeu de test sans augmentation (préprocessing uniquement).
-    """
-    # S'assure que les transforms de préprocessing sont bien initialisées
+    """DataLoader test sans augmentation."""
     preprocessing.get_preprocess_transforms(config)
-
-    # Pas d'augmentation en test
-    test_loader = data_loading.get_dataloaders(
-        split="test",
-        augment_transforms=None,
-        config=config
-    )
+    test_loader = data_loading.get_dataloaders("test", None, config)
     return test_loader
 
 
 def evaluate(model_net, test_loader, device):
     criterion = nn.CrossEntropyLoss()
-
     model_net.to(device)
     model_net.eval()
 
     test_loss = 0.0
     correct = 0
     total = 0
-
     all_preds = []
     all_labels = []
 
     with torch.no_grad():
         for images, labels in tqdm(test_loader, desc="Test"):
             images, labels = images.to(device), labels.to(device)
-
             outputs = model_net(images)
             loss = criterion(outputs, labels)
 
             batch_size = images.size(0)
             test_loss += loss.item() * batch_size
-
             _, predicted = torch.max(outputs.data, 1)
             total += batch_size
             correct += (predicted == labels).sum().item()
@@ -104,53 +95,53 @@ def evaluate(model_net, test_loader, device):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, required=True,
-                        help="Chemin vers le fichier de configuration YAML.")
-    parser.add_argument("--checkpoint", type=str, required=True,
-                        help="Chemin vers le checkpoint (.ckpt) du meilleur modèle.")
+    parser = argparse.ArgumentParser(description="Évaluation du modèle sur test set")
+    parser.add_argument("--config", type=str, required=True, help="Chemin config YAML")
+    parser.add_argument("--checkpoint", type=str, required=True, help="Chemin checkpoint")
+    parser.add_argument("--model", type=str, default="A", 
+                       choices=["A", "B", "Special"],
+                       help="Variant modèle (A/B/Special). Défaut: A")
     args = parser.parse_args()
 
-    # 1. Charger la config
+    # 1. Charger config
     config_path = os.path.join(os.getcwd(), args.config)
     config = load_config(config_path)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Évaluation sur {device} - Modèle: {args.model}")
 
-    # 2. Choix du device
-    device = torch.device(config["train"].get("device", "cuda") if torch.cuda.is_available() else "cpu")
-    print(f"Évaluation sur device : {device}")
+    # 2. Construire modèle selon variant
+    net = build_model_from_config(config, args.model)
 
-    # 3. Construire le modèle
-    net = build_model_from_config(config)
-
-    # 4. Charger le checkpoint
+    # 3. Charger checkpoint
     checkpoint_path = os.path.join(os.getcwd(), args.checkpoint)
     if not os.path.isfile(checkpoint_path):
         raise FileNotFoundError(f"Checkpoint introuvable : {checkpoint_path}")
-    print(f"Chargement du checkpoint : {checkpoint_path}")
+    
+    print(f"Chargement checkpoint : {args.checkpoint}")
     state_dict = torch.load(checkpoint_path, map_location=device)
     net.load_state_dict(state_dict)
 
-    # 5. Dataloader de test
+    # 4. Test loader
     test_loader = get_test_loader(config)
 
-    # 6. Évaluation
+    # 5. Évaluer
     test_loss, test_acc, test_f1, cm, y_true, y_pred = evaluate(net, test_loader, device)
 
-    # 7. Affichage des résultats
-    print("\n===== Résultats sur le jeu de TEST =====")
-    print(f"Test loss      : {test_loss:.4f}")
-    print(f"Test accuracy  : {test_acc:.2%}")
-    print(f"Test F1 macro  : {test_f1:.4f}")
+    # 6. Résultats
+    print("\n" + "="*50)
+    print("RÉSULTATS SUR LE JEU DE TEST")
+    print("="*50)
+    print(f"Test Loss     : {test_loss:.4f}")
+    print(f"Test Accuracy : {test_acc:.3%}")
+    print(f"Test F1 Macro : {test_f1:.4f}")
+    print(f"Test samples  : {len(y_true)}") 
+    print("="*50)
 
-    print("\nMatrice de confusion (shape = {}):".format(cm.shape))
-    print(cm)
+    print(f"\nMatrice de confusion ({cm.shape[0]} classes):")
+    print(cm[:10, :10], "..." if cm.shape[0] > 10 else "")  # Top-left corner
 
-    # Optionnel : rapport détaillé si besoin
-    try:
-        print("\nRapport de classification :")
-        print(classification_report(y_true, y_pred, digits=4))
-    except Exception:
-        pass
+    print("\nRapport détaillé :")
+    print(classification_report(y_true, y_pred, digits=4))
 
 
 if __name__ == "__main__":
