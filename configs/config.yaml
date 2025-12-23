@@ -144,7 +144,7 @@ train_final:
   epochs: 200
   warmup_epochs: 5
   first_cycle_epochs: 30
-  t_mult: 2.0
+  t_mult: 2
   early_stopping_patience: 200
   max_steps: null
 
