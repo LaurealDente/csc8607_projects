@@ -1,0 +1,17 @@
+{
+  "metadata": {
+    "model_variant": "A",
+    "checkpoint": "artifacts/bestof_Modele_A.ckpt",
+    "config": "configs/config.yaml",
+    "device": "cuda",
+    "timestamp": "2025-12-23T22:06:36.657971",
+    "test_samples": 10000
+  },
+  "metrics": {
+    "test_loss": 3.187615735244751,
+    "test_accuracy": 0.3538,
+    "test_f1_macro": 0.35092679062802545
+  },
+  "predictions": {
+    "y_true": [
+      
