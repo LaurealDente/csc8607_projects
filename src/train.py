@@ -345,11 +345,11 @@ def main():
 
     if args.charge_datasets:
 
+        print("Chargement des données")
         data_loading.get_data(base_config)
-        print("Enregistrement des données")
         preprocessing.get_preprocess_transforms(base_config)
 
-    modele = model.build_model(base_config["perte_model"])
+    modele = model.build_model(base_config["basic_model"])
 
     aug_pipeline = augmentation.get_augmentation_transforms(base_config)
     train_loader = data_loading.get_dataloaders("train", aug_pipeline, base_config)
@@ -360,7 +360,7 @@ def main():
 
     # Tâche 2: Overfit Small (Exclusif ou cumulatif selon besoin, ici exclusif souvent mieux)
     if args.overfit_small:
-        overfitting_small(modele, base_config)
+        overfitting_small(modele, base_config["basic_model"])
 
     # 3. Sélection de la configuration (Normale ou Finale)
     if args.final_run:

@@ -27,7 +27,7 @@ def save_dataset(images, labels, dataset):
                 + dataset 
                 + ".pt"))
 
-    print("Preprocessed data saved : " +  os.path.join(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"), "preprocessed_dataset_" 
+    print("Data saved : " +  os.path.join(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"), "preprocessed_dataset_" 
                 + dataset 
                 + ".pt"))
 

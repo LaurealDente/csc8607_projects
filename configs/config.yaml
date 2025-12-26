@@ -24,7 +24,7 @@ preprocess:
   normalize: True
   text_tokenizer: null
 
-perte_model:
+basic_model:
   model :
     residual_blocks : [3,3,3]
     dropout : 0.1
