@@ -1,17 +1,24 @@
 #!/bin/bash
 
+# --- NETTOYAGE DES VARIABLES SLURM FANTÔMES ---
+# C'est cette partie qui corrige votre erreur "Invalid job id specified"
+unset SLURM_JOB_ID
+unset SLURM_JOBID
+unset SLURM_SUBMIT_DIR
+unset SLURM_TASK_PID
+unset SLURM_JOB_NODELIST
+unset SLURM_CLUSTER_NAME
+# ----------------------------------------------
+
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd "$SCRIPT_DIR" || exit 1
 
-# Création du dossier de logs pour vérifier les résultats demain
 mkdir -p logs
-
-# Nettoyage
 rm -rf runs results/* data/* artifacts/*
 
 ENV_NAME="csc8607_env"
 
-# Configuration de l'environnement (exécutée sur le login node pour être propagée)
+# Configuration de l'environnement
 if [[ -z "$VIRTUAL_ENV" && -z "$CONDA_PREFIX" ]]; then
     if command -v mamba &> /dev/null; then
         CONDA_CMD="mamba"
@@ -21,24 +28,16 @@ if [[ -z "$VIRTUAL_ENV" && -z "$CONDA_PREFIX" ]]; then
         echo "Error: conda/mamba not found."
         exit 1
     fi
-
-    if ! $CONDA_CMD env list | grep -q "$ENV_NAME"; then
-        $CONDA_CMD create -n "$ENV_NAME" python=3.10 -y
-    fi
-    
     source "$(dirname $(dirname $(which $CONDA_CMD)))/etc/profile.d/conda.sh"
     $CONDA_CMD activate "$ENV_NAME"
 fi
 
-if [ -f "requirements.txt" ]; then
-    pip install -r requirements.txt
-fi
-
-# Définition des ressources pour CHAQUE job
-# srun va demander ces ressources, lancer la commande, et attendre la fin.
+# Paramètres de vos jobs (10h, 4 GPU, 32G de RAM par job)
 SLURM_ARGS="--time=10:00:00 --gres=gpu:4 --cpus-per-task=8 --mem=32G"
 
-echo "--- Démarrage de la séquence ---"
+echo "--- Démarrage propre (Environnement nettoyé) ---"
+
+# Chaque commande srun va maintenant créer son PROPRE job indépendant
 
 echo "[1/9] Perte Initiale"
 srun $SLURM_ARGS --job-name=init --output=logs/01_perte_initiale_%j.log \
@@ -64,14 +63,11 @@ echo "[6/9] Train Final"
 srun $SLURM_ARGS --job-name=final --output=logs/06_train_final_%j.log \
     python -m src.train --config configs/config.yaml --final_run --charge_datasets
 
-# Les vérifications "if" se font sur le nœud maître, le "srun" lance le job si la condition est vraie
-
+# Evaluation conditionnelle
 if [ -f "artifacts/best_of_A.ckpt" ]; then
     echo "[7/9] Evaluate A"
     srun $SLURM_ARGS --job-name=evalA --output=logs/07_evaluate_A_%j.log \
         python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/best_of_A.ckpt --model A
-else
-    echo "Skip Evaluate A (checkpoint not found)" >> logs/skipped.log
 fi
 
 if [ -f "artifacts/best_of_B.ckpt" ]; then
@@ -86,4 +82,4 @@ if [ -f "artifacts/best_of_Special.ckpt" ]; then
         python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/best_of_Special.ckpt --model Special
 fi
 
-echo "--- Séquence terminée. Vérifiez le dossier logs/ ---"
+echo "--- Séquence terminée ---"
