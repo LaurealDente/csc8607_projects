@@ -68,10 +68,6 @@ def get_data(config: dict):
     for dataset in final_datasets:
         preprocessing.save_dataset(final_datasets[dataset][config["dataset"]["columns"]["image"]], final_datasets[dataset][config["dataset"]["columns"]["label"]], dataset)
 
-    
-    # log_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../runs")
-    # writer = SummaryWriter(log_dir=log_dir)
-
     particularities = {}
 
     for split_name, dataset in final_datasets.items():
@@ -81,15 +77,12 @@ def get_data(config: dict):
         count_distribution = Counter(counts)
         label_dist_dict = {str(k): v for k, v in count_distribution.items()}
         
-        # writer.add_scalars(f"label_distribution/{split_name}", label_dist_dict, global_step=0)
-        
         particularities[split_name] = detect_dataset_particularities(dataset)
 
-    # writer.close()
     return final_datasets, particularities
 
 
-def get_dataloaders(split: str, augmentation_pipeline, config: dict):  # ← split au lieu de dataset
+def get_dataloaders(split: str, augmentation_pipeline, config: dict):
     """
     Crée un DataLoader pour un split spécifique (train/val/test).
     """
@@ -118,7 +111,6 @@ def create_stratified_subset_loader_manual(
     batch_size: int, 
     num_workers: int = 0
     ) -> DataLoader:
-    # 1. Vérifier que le dataset a bien une liste de labels
     if hasattr(dataset, 'targets'):
         labels = np.array(dataset.targets)
     elif hasattr(dataset, 'labels'):
@@ -126,39 +118,32 @@ def create_stratified_subset_loader_manual(
     else:
         raise AttributeError("Le Dataset doit avoir un attribut '.targets' ou '.labels' pour la stratification.")
 
-    # S'assurer que la taille du sous-ensemble est réaliste
-    subset_size = min(subset_size, len(dataset))
 
-    # 2. Regrouper les indices de chaque image par label
+    subset_size = min(subset_size, len(dataset))
+    
     label_to_indices = defaultdict(list)
     for idx, label in enumerate(labels):
         label_to_indices[label].append(idx)
 
-    # 3. Calculer combien d'échantillons prendre par classe
+
     final_indices = []
     total_size = len(dataset)
     
     for label, indices in label_to_indices.items():
-        # Proportion de cette classe dans le dataset complet
         proportion = len(indices) / total_size
-        # Nombre d'échantillons à prendre pour cette classe dans le sous-ensemble
         num_samples_for_label = int(subset_size * proportion)
-        # Assurer qu'on prend au moins un échantillon si la classe est représentée
         num_samples_for_label = max(1, num_samples_for_label)
         
-        # 4. Piocher aléatoirement les indices pour cette classe
-        # `random.sample` pioche sans remise
         sampled_indices = random.sample(indices, min(len(indices), num_samples_for_label))
         final_indices.extend(sampled_indices)
         
-    # 5. Créer le Subset et le DataLoader
-    random.shuffle(final_indices) # Mélanger les indices de toutes les classes
+    random.shuffle(final_indices)
     subset_dataset = Subset(dataset, final_indices)
     
     subset_loader = DataLoader(
         subset_dataset,
         batch_size=batch_size,
-        shuffle=True, # Important de mélanger le sous-ensemble final
+        shuffle=True,
         num_workers=num_workers
     )
     

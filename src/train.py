@@ -28,18 +28,18 @@ def overfitting_small(modele, config):
 
     run_name = f"overfit_small_{time.strftime('%Y%m%d-%H%M%S')}"
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    # Correction chemin logs
+    
     runs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), config["paths"]["runs_dir"])
     tensorboard_path = os.path.join(runs_dir, "overfit_small", run_name)
     writer = SummaryWriter(log_dir=tensorboard_path)
 
     full_train_dataset = augmentation.AugmentationDataset(
         data_path=config["dataset"]["split"]["train"]["chemin"],
-        transform=None # Pas d'augmentation pour l'overfit test (plus stable)
+        transform=None
     )
 
-    # On prend un subset très petit
-    subset_size = config["train"]["batch_size"] * 2  # ex: 64 images
+
+    subset_size = config["train"]["batch_size"] * 2
     overfit_indices = list(range(subset_size))
     overfit_dataset = Subset(full_train_dataset, overfit_indices)
 
@@ -52,7 +52,7 @@ def overfitting_small(modele, config):
     print(f"Taille du sous-ensemble : {subset_size} exemples.")
     print(f"Hyperparamètres : Blocks={config['basic_model']['model']['residual_blocks']}, Dropout={config['basic_model']['model']['dropout']}")
     
-    # Overfit epochs
+    
     n_epochs = config["train"].get("overfit_epochs", 50) 
     print(f"Nombre d'époques : {n_epochs}")
 
@@ -126,7 +126,7 @@ def perte_premier_batch(config:dict, modele, train_loader):
     writer.flush()
     writer.close()
 
-    # Test Backward
+
     optimizer = model.get_optimizer(modele, config)
     optimizer.zero_grad()
     loss.backward()
@@ -150,14 +150,14 @@ def train(modele, train_loader, val_loader, config, variant_name="default"):
     criterion = nn.CrossEntropyLoss()
 
     epochs = config["train"]["epochs"]
-    base_lr = float(config["train"]["optimizer"]["lr"]) # Assurer float
+    base_lr = float(config["train"]["optimizer"]["lr"])
 
-    # Paramètres Scheduler
+
     warmup_epochs = config["train"].get("warmup_epochs", 5)
     first_cycle_epochs = config["train"].get("first_cycle_epochs", 20)
     t_mult = config["train"].get("t_mult", 2.0)
 
-    # Définition des schedulers
+
     warmup_scheduler = LinearLR(
         optimizer,
         start_factor=0.1,
@@ -165,27 +165,27 @@ def train(modele, train_loader, val_loader, config, variant_name="default"):
         total_iters=warmup_epochs
     )
     
-    # Le cosine prend le relais après warmup
+    
     cosine_scheduler = CosineAnnealingWarmRestarts(
         optimizer,
         T_0=first_cycle_epochs,
         T_mult=int(t_mult)
     )
 
-    # Chemins
+
     root_dir = os.path.dirname(os.path.dirname(__file__))
     runs_dir = os.path.join(root_dir, config["paths"]["runs_dir"])
     artifacts_dir = os.path.join(root_dir, config["paths"]["artifacts_dir"])
     os.makedirs(runs_dir, exist_ok=True)
     os.makedirs(artifacts_dir, exist_ok=True)
 
-    # Nom du run explicite
+
     timestamp = time.strftime('%Y%m%d-%H%M%S')
     run_name = f"{variant_name}_lr{base_lr}_wd{config['train']['optimizer']['weight_decay']}_{timestamp}"
     
     writer = SummaryWriter(log_dir=os.path.join(runs_dir, "train", run_name))
 
-    # Early Stopping
+
     patience = config["train"].get("early_stopping_patience", 10)
     best_model_name = f"best_of_{variant_name}.ckpt"
     best_model_path = os.path.join(artifacts_dir, best_model_name)
@@ -204,7 +204,7 @@ def train(modele, train_loader, val_loader, config, variant_name="default"):
     global_step = 0
 
     for epoch in range(epochs):
-        # --- TRAIN LOOP ---
+        
         modele.train()
         running_loss = 0.0
         correct = 0
@@ -212,7 +212,7 @@ def train(modele, train_loader, val_loader, config, variant_name="default"):
         all_train_preds = []
         all_train_labels = []
 
-        # TQDM pour suivre l'époque
+
         pbar = tqdm(train_loader, desc=f"Ep {epoch+1}/{epochs} [Train]", leave=False)
         
         for images, labels in pbar:
@@ -230,8 +230,7 @@ def train(modele, train_loader, val_loader, config, variant_name="default"):
             total += batch_size
             correct += (predicted == labels).sum().item()
             
-            # Stockage pour F1 (attention mémoire sur gros dataset)
-            # Pour optimisation, on pourrait calculer F1 batch par batch ou ne pas le faire en train
+            
             all_train_preds.extend(predicted.cpu().numpy())
             all_train_labels.extend(labels.cpu().numpy())
 
@@ -278,14 +277,14 @@ def train(modele, train_loader, val_loader, config, variant_name="default"):
         val_acc = val_correct / val_total
         val_f1 = f1_score(all_labels, all_preds, average="macro")
 
-        # Affichage Console
+
         print(
             f"Ep {epoch+1}: "
             f"T.Loss={train_loss:.3f} T.Acc={train_acc:.1%} "
             f"V.Loss={val_loss:.3f} V.Acc={val_acc:.1%} V.F1={val_f1:.3f}"
         )
 
-        # TensorBoard
+
         writer.add_scalar("train/loss", train_loss, epoch)
         writer.add_scalar("train/accuracy", train_acc, epoch)
         writer.add_scalar("train/f1_macro", train_f1, epoch)
@@ -297,13 +296,13 @@ def train(modele, train_loader, val_loader, config, variant_name="default"):
         current_lr = optimizer.param_groups[0]["lr"]
         writer.add_scalar("lr", current_lr, epoch)
 
-        # Update Scheduler
+
         if epoch < warmup_epochs:
             warmup_scheduler.step()
         else:
             cosine_scheduler.step(epoch - warmup_epochs)
 
-        # Early Stopping check
+
         early_stopping(val_f1, modele)
         if early_stopping.early_stop:
             print(f"Early stopping déclenché à l'époque {epoch+1}.")
@@ -328,7 +327,7 @@ def main():
 
     args = parser.parse_args()
 
-    # 1. Chargement YAML
+
     try:
         full_path = os.path.abspath(args.config)
         with open(full_path, "r") as f:
@@ -336,26 +335,25 @@ def main():
     except FileNotFoundError:
         raise Exception(f"Fichier de configuration introuvable : {full_path}")
 
-    # 2. Gestion de la Seed
+
     seed_to_use = args.seed if args.seed is not None else base_config["train"].get("seed", 42)
     utils.set_seed(seed_to_use)
     base_config["train"]["seed"] = seed_to_use
     print(f"Seed fixée à : {seed_to_use}")
 
-    # 3. Preprocessing (si demandé)
+
     if args.charge_datasets:
         print("Chargement et régénération des données...")
         data_loading.get_data(base_config)
         preprocessing.get_preprocess_transforms(base_config)
 
-    # 4. Tâches préliminaires (Overfit / Sanity Check) qui n'ont pas besoin de variantes
+
     if args.perte_initiale or args.overfit_small:
-        # On utilise le modèle de base pour ces tests
+        
         modele = model.build_model(base_config["basic_model"])
         aug_pipeline = augmentation.get_augmentation_transforms(base_config)
         
-        # Note: Pour overfit_small on recrée souvent un loader spécifique dans la fonction,
-        # mais on a besoin du train_loader pour perte_initiale
+        
         train_loader = data_loading.get_dataloaders("train", aug_pipeline, base_config)
 
         if args.perte_initiale:
@@ -363,46 +361,37 @@ def main():
         
         if args.overfit_small:
             overfitting_small(modele, base_config)
-            
-        # Si on ne fait que ça, on s'arrête là
-        if args.overfit_small: 
-            return
 
-    # 5. Préparation des Variantes pour l'Entraînement Complet
-    
-    # A. Récupération des définitions brutes depuis le YAML
     raw_variants = base_config["model"].get("final_test", {})
     if not raw_variants:
         print("⚠️ Attention : Aucune variante trouvée dans 'model.final_test'. Utilisation de Default.")
         raw_variants = {"Default": {}}
 
-    # B. Logique de Filtrage : QUI doit tourner ?
+
     variants_to_run = {}
     
     if args.final_run:
                 
-        # 1. Mise à jour de la config de base avec les paramètres _final
+                
         base_config["train"].update(base_config.get("train_final", {}))
         base_config["model"].update(base_config.get("model_final", {}))
         base_config["augment"].update(base_config.get("augment_final", {}))
         
-        # 2. On sélectionne uniquement la variante "Special" si elle existe
+        
         if "Special" in raw_variants:
             variants_to_run["Special"] = raw_variants["Special"]
             
     else:
-        # Mode Normal (Dev) : On lance A et B (et on ignore Special)
         targets = ["A", "B"]
         for name in targets:
             if name in raw_variants:
                 variants_to_run[name] = raw_variants[name]
         
-        # Sécurité : Si A et B n'existent pas, on prend tout sauf Special
         if not variants_to_run:
             variants_to_run = {k: v for k, v in raw_variants.items() if k != "Special"}
             
 
-    # 6. Boucle d'exécution
+
     for variant_name, hparams in variants_to_run.items():
 
 
@@ -411,32 +400,29 @@ def main():
             print(f"\n{'='*20} Traitement : {variant_name} {'='*20}")
             print(f"hyperparamètres : {hparams}")
 
-            # Copie propre de la config de base (déjà patchée si final_run)
+
             current_config = yaml.safe_load(yaml.dump(base_config))
 
-            # Surcharges CLI (priorité absolue)
             if args.max_epochs is not None:
                 current_config["train"]["epochs"] = args.max_epochs
             if args.max_steps is not None:
                 current_config["train"]["max_steps"] = args.max_steps
-
-            # Application des hyperparamètres spécifiques à la variante
-            # (Ces params écrasent ceux de model/model_final)
+                
             if hparams:
                 for k, v in hparams.items():
                     current_config["model"][k] = v
             
             current_config["model"]["version_name"] = variant_name
 
-            # Construction
+
             modele = model.build_model(current_config)
             aug_pipeline = augmentation.get_augmentation_transforms(current_config)
 
-            # Loaders
+
             train_loader = data_loading.get_dataloaders("train", aug_pipeline, current_config)
             val_loader = data_loading.get_dataloaders("val", None, current_config)
 
-            # Lancement de l'entraînement
+
             train(modele, train_loader, val_loader, current_config, variant_name=variant_name)
 
 if __name__ == "__main__":

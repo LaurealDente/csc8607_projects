@@ -34,20 +34,17 @@ def mini_grid_search(data_loader_train, data_loader_val, config, device, num_epo
     """
     all_results = []
 
-    # Hyperparamètres à tester
     hparams_cfg = config["grid_search"]["hparams"]
     dropout_options = hparams_cfg["dropout"]
     block_config_options = hparams_cfg["block_config"]
     lr_options = hparams_cfg["lr"]
     wd_options = hparams_cfg["weight_decay"]
 
-    # Paramètres fixes du modèle
     num_classes = config['model']['num_classes']
     use_residual = config['model']['residual']
     use_batch_norm = config['model']['batch_norm']
     activation_fn = config['model']['activation']
 
-    # Toutes les configurations à tester (modèle + lr/wd)
     configs_to_test = []
     for dropout in dropout_options:
         for block_config in block_config_options:
@@ -73,7 +70,6 @@ def mini_grid_search(data_loader_train, data_loader_val, config, device, num_epo
 
     print(f"Nombre de configurations à tester : {len(configs_to_test)}")
 
-    # Créer le writer TensorBoard dans runs/grid_search/<run_name>
     script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     runs_dir = config["paths"]["runs_dir"]
     grid_root = os.path.join(script_dir, runs_dir, "grid_search")
@@ -86,7 +82,6 @@ def mini_grid_search(data_loader_train, data_loader_val, config, device, num_epo
     writer = SummaryWriter(log_dir=log_dir)
     print(f"Logs TensorBoard de la grid search dans : {log_dir}")
 
-    # Boucle sur toutes les configs
     for idx, cfg_pack in enumerate(configs_to_test):
         cfg_model = cfg_pack["model_cfg"]
         lr = cfg_pack["lr"]
@@ -106,7 +101,6 @@ def mini_grid_search(data_loader_train, data_loader_val, config, device, num_epo
         epoch_iterator = tqdm(range(num_epochs), desc=f"Model {idx}")
 
         for epoch in epoch_iterator:
-            # ---- TRAIN ----
             modele.train()
             train_loss = 0.0
 
@@ -134,7 +128,7 @@ def mini_grid_search(data_loader_train, data_loader_val, config, device, num_epo
                 avg_train_loss = train_loss / len(data_loader_train)
                 epoch_iterator.set_postfix(train_loss=f"{avg_train_loss:.4f}")
 
-                # ---- VAL ----
+
                 modele.eval()
                 val_loss, correct, total = 0.0, 0, 0
                 with torch.no_grad():
@@ -156,8 +150,6 @@ def mini_grid_search(data_loader_train, data_loader_val, config, device, num_epo
                 f"Résultats -> Val Loss: {final_val_loss:.4f}, "
                 f"Val Accuracy: {final_val_accuracy:.2f}%"
             )
-
-            # Logs TensorBoard par modèle et epoch
             tag_prefix = f"Model_{idx}"
             writer.add_scalar(f"{tag_prefix}/Val_Loss", final_val_loss, epoch)
             writer.add_scalar(f"{tag_prefix}/Val_Accuracy", final_val_accuracy, epoch)
@@ -165,8 +157,7 @@ def mini_grid_search(data_loader_train, data_loader_val, config, device, num_epo
             writer.add_scalar(f"{tag_prefix}/LR", lr, epoch)
             writer.add_scalar(f"{tag_prefix}/WD", wd, epoch)
             writer.add_scalar(f"{tag_prefix}/Dropout", cfg_model["model"]["dropout"], epoch)
-
-            # Garder les résultats dans un tableau
+            
             all_results.append(
                 {
                     "Model_id": idx,
@@ -185,7 +176,6 @@ def mini_grid_search(data_loader_train, data_loader_val, config, device, num_epo
 
     writer.close()
 
-    # Tableau final
     results_df = pd.DataFrame(all_results).sort_values(
         by=["Model_id", "Epoch"]
     )
@@ -208,9 +198,7 @@ def mini_grid_final(data_loader_train, data_loader_val, config, device, num_epoc
     """
 
     all_results = []
-
-    # Hyperparamètres 'config' pour la grid finale
-    base_cfg = config["grid_final"]["base_model"]      # modèle de référence (A)
+    base_cfg = config["grid_final"]["base_model"]
     lr_base = config["grid_final"]["lr"]
     wd_base = config["grid_final"]["weight_decay"]
     lr_high = config["grid_final"]["lr_high"]
@@ -222,8 +210,7 @@ def mini_grid_final(data_loader_train, data_loader_val, config, device, num_epoc
     use_residual = config["model"]["residual"]
     use_batch_norm = config["model"]["batch_norm"]
     activation_fn = config["model"]["activation"]
-
-    # Liste ORDonnée des expériences
+    
     experiments = [
         {
             "name": "baseline",
@@ -262,7 +249,6 @@ def mini_grid_final(data_loader_train, data_loader_val, config, device, num_epoc
         },
     ]
 
-    # Dossier TensorBoard : runs/grid_final/...
     script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     runs_dir = config["paths"]["runs_dir"]
     grid_root = os.path.join(script_dir, runs_dir, "grid_final")
@@ -307,7 +293,6 @@ def mini_grid_final(data_loader_train, data_loader_val, config, device, num_epoc
         epoch_iterator = tqdm(range(num_epochs), desc=f"{exp['name']}")
 
         for epoch in epoch_iterator:
-            # ---- TRAIN ----
             modele.train()
             train_loss = 0.0
             correct = 0
@@ -351,7 +336,6 @@ def mini_grid_final(data_loader_train, data_loader_val, config, device, num_epoc
 
                 epoch_iterator.set_postfix(train_loss=f"{avg_train_loss:.4f}")
 
-                # ---- VAL ----
                 modele.eval()
                 val_loss = 0.0
                 val_correct = 0
@@ -388,17 +372,14 @@ def mini_grid_final(data_loader_train, data_loader_val, config, device, num_epoc
                     final_val_f1 = f1_score(all_val_labels, all_val_preds, average="macro")
                     notes = ""
 
-                # Logs TRAIN
                 writer.add_scalar(f"train/{tag_prefix}_loss", avg_train_loss, epoch)
                 writer.add_scalar(f"train/{tag_prefix}_accuracy", train_acc, epoch)
                 writer.add_scalar(f"train/{tag_prefix}_f1_macro", train_f1, epoch)
-
-                # Logs VAL
+                
                 writer.add_scalar(f"val/{tag_prefix}_loss", final_val_loss, epoch)
                 writer.add_scalar(f"val/{tag_prefix}_accuracy", final_val_acc, epoch)
                 writer.add_scalar(f"val/{tag_prefix}_f1_macro", final_val_f1, epoch)
-
-                # Logs hparams (constants)
+                
                 writer.add_scalar(f"hparams/{tag_prefix}_lr", exp["lr"], epoch)
                 writer.add_scalar(f"hparams/{tag_prefix}_wd", exp["wd"], epoch)
                 writer.add_scalar(f"hparams/{tag_prefix}_dropout", exp["dropout"], epoch)
@@ -453,7 +434,7 @@ def main():
     with open(os.path.join(os.getcwd(), args.config), "r") as f:
         config = yaml.safe_load(f)
 
-    # Datasets (train / test) à partir des fichiers .pt
+
     full_train_dataset = augmentation.AugmentationDataset(
         data_path=config["dataset"]["split"]["train"]["chemin"],
         transform=None,

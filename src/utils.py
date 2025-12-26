@@ -16,9 +16,8 @@ def set_seed(seed=42):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # Pour le multi-GPU
+    torch.cuda.manual_seed_all(seed)
     
-    # Pour garantir le déterminisme absolu (peut ralentir un peu l'entraînement)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     
@@ -67,8 +66,6 @@ class EarlyStopping:
         self.val_loss_min = np.inf
 
     def __call__(self, val_metric, model):
-        # On suppose que val_metric est un score à maximiser (ex: F1, Accuracy)
-        # Si c'est une loss à minimiser, il faut inverser la logique
         score = val_metric
 
         if self.best_score is None:
@@ -89,7 +86,6 @@ class EarlyStopping:
         '''Sauvegarde le modèle quand le score s'améliore.'''
         if self.verbose:
             print(f'Validation score improved ({self.best_score:.6f} --> {score:.6f}).  Saving model ...')
-        
-        # Création du dossier parent si nécessaire
+
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
         torch.save(model.state_dict(), self.path)

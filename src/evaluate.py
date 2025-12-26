@@ -113,16 +113,13 @@ def main():
                        help="Variant modèle (A/B/Special). Défaut: A")
     args = parser.parse_args()
 
-    # 1. Charger config
     config_path = os.path.join(os.getcwd(), args.config)
     config = load_config(config_path)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Évaluation sur {device} - Modèle: {args.model}")
 
-    # 2. Construire modèle selon variant
     net = build_model_from_config(config, args.model)
 
-    # 3. Charger checkpoint
     checkpoint_path = os.path.join(os.getcwd(), args.checkpoint)
     if not os.path.isfile(checkpoint_path):
         raise FileNotFoundError(f"Checkpoint introuvable : {checkpoint_path}")
@@ -131,13 +128,10 @@ def main():
     state_dict = torch.load(checkpoint_path, map_location=device)
     net.load_state_dict(state_dict)
 
-    # 4. Test loader
     test_loader = get_test_loader(config)
 
-    # 5. Évaluer
     test_loss, test_acc, test_f1, cm, y_true, y_pred = evaluate(net, test_loader, device)
 
-    # 6. Résultats console
     print("\n" + "="*50)
     print("RÉSULTATS SUR LE JEU DE TEST")
     print("="*50)
@@ -153,7 +147,6 @@ def main():
     print("\nRapport détaillé :")
     print(classification_report(y_true, y_pred, digits=4))
 
-    # 7. Sauvegarde JSON
     results = {
         "metadata": {
             "model_variant": args.model,
@@ -168,8 +161,8 @@ def main():
             "test_accuracy": float(test_acc),
             "test_f1_macro": float(test_f1)
         },
-        # Sauvegarde LIGHT : métriques + top de la matrice de confusion
-        "confusion_matrix_top10": cm[:10, :10].tolist(),  # Seulement top-left
+        
+        "confusion_matrix_top10": cm[:10, :10].tolist(),
         "confusion_matrix_shape": [cm.shape[0], cm.shape[1]]
     }
     

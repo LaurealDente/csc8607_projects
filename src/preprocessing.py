@@ -56,7 +56,6 @@ def get_preprocess_transforms(config: dict):
     
     final_datasets, particularities = data_loading.get_data(config)
     
-    # Préprocess chaque split + sauvegarde
     for dataset_name in final_datasets:
         dataset = final_datasets[dataset_name]
         

@@ -20,9 +20,6 @@ class BlocResiduel(nn.Module):
 
         self.residual = residual
 
-        # --- Branche principale (Main Path) ---
-        # Séquence de couches qui transforment les données
-
         layers = [nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)]
         if batch_norm :
             layers.append(nn.BatchNorm2d(out_channels))
@@ -34,35 +31,26 @@ class BlocResiduel(nn.Module):
 
         self.main_path = nn.Sequential(*layers)
 
-        # --- Connexion résiduelle (Shortcut / Skip Connection) ---
-        self.shortcut = nn.Sequential() # Par défaut, ne fait rien (fonction identité)
+        self.shortcut = nn.Sequential() 
         
-        # Si les dimensions changent (stride > 1 ou nb de canaux différent),
-        # on crée une projection avec une convolution 1x1 pour adapter.
         if stride != 1 or in_channels != out_channels:
             layers = [nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False)]
             if batch_norm :
                 layers.append(nn.BatchNorm2d(out_channels))
             self.shortcut = nn.Sequential(*layers)
         
-        # L'activation ReLU finale est appliquée après l'addition
         self.final_relu = fonction_activation(inplace=True if fonction == "relu" else False)
 
     def forward(self, x):
-        # Si la connexion résiduelle est désactivée seule la sortie de la branch est renvoyée
         if not self.residual:
             return self.final_relu(self.main_path(x))
-
-        # L'entrée est mémorisée pour la connexion résiduelle
+        
         residual_out = self.shortcut(x)
         
-        # On calcule la sortie de la branche principale
         out = self.main_path(x)
         
-        # On additionne la sortie de la branche principale et la connexion résiduelle
         out += residual_out
         
-        # On applique l'activation finale
         out = self.final_relu(out)
         
         return out
@@ -85,11 +73,9 @@ class ResNet(nn.Module):
         }
 
         fonction_activation = fonction_activation[fonction]
-
-        # Garde en mémoire le nombre de canaux attendus en entrée du prochain stage
+        
         self.in_channels = 64
-
-        # --- Couche initiale ---
+        
         layers = [nn.Conv2d(3, self.in_channels, kernel_size=3, stride=1, padding=1, bias=False),]
         if batch_norm:
             layers.append(nn.BatchNorm2d(self.in_channels))
@@ -97,12 +83,11 @@ class ResNet(nn.Module):
 
         self.initiale = nn.Sequential(*layers)
 
-        # --- Stages de blocs résiduels ---
         self.stage1 = self._make_stage(out_channels=64, num_blocks=B1, stride=1, dropout_p=dropout_p, fonction_activation = fonction_activation, fonction = fonction, residual=residual, batch_norm = batch_norm)
         self.stage2 = self._make_stage(out_channels=128, num_blocks=B2, stride=2, dropout_p=dropout_p, fonction_activation = fonction_activation, fonction = fonction, residual=residual, batch_norm = batch_norm)
         self.stage3 = self._make_stage(out_channels=256, num_blocks=B3, stride=2, dropout_p=dropout_p, fonction_activation = fonction_activation, fonction = fonction, residual=residual, batch_norm = batch_norm)
 
-        # --- Tête de classification ---
+
         self.head = nn.Sequential(
             nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
@@ -113,12 +98,11 @@ class ResNet(nn.Module):
         """
         Fonction utilitaire qui construit un stage en empilant num_blocks de BlocResiduel.
         """
-        # Le premier bloc du stage a le stride donné, les autres ont un stride de 1
         strides = [stride] + [1] * (num_blocks - 1)
         layers = []
         for s in strides:
             layers.append(BlocResiduel(self.in_channels, out_channels, stride=s, dropout_p=dropout_p, fonction_activation = fonction_activation, fonction = fonction, residual = residual, batch_norm = batch_norm))
-            # Le nombre de canaux d'entrée pour le prochain bloc est le nombre de canaux de sortie actuel
+
             self.in_channels = out_channels
         
         return nn.Sequential(*layers)
@@ -145,7 +129,6 @@ def get_optimizer(model, config, weight_decay=None, lr=None):
     Crée un optimiseur.
     Accepte weight_decay et lr comme arguments optionnels pour surcharger la config.
     """
-    # Priorité à l'argument direct, sinon on prend la valeur dans le fichier config
     wd_to_use = weight_decay if weight_decay is not None else config["train"]["optimizer"].get("weight_decay", 0)
     lr_to_use = lr if lr is not None else config["train"]["optimizer"]["lr"]
 
@@ -154,7 +137,6 @@ def get_optimizer(model, config, weight_decay=None, lr=None):
     if optimizer_name == 'AdamW':
         return torch.optim.AdamW(model.parameters(), lr=lr_to_use, weight_decay=wd_to_use)
     elif optimizer_name == 'SGD':
-        # Assurez-vous d'avoir un momentum dans votre config si vous utilisez SGD
         momentum = config["train"]["optimizer"].get("momentum", 0.9)
         return torch.optim.SGD(model.parameters(), lr=lr_to_use, weight_decay=wd_to_use, momentum=momentum)
     else:

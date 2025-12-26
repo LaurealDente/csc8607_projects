@@ -23,32 +23,26 @@ def comparaison(original_img, augmented_img, label_idx, index):
     """
     Sauvegarde une comparaison (Original vs Augmentée) dans un fichier PNG.
     """
-    # Création du dossier de sauvegarde s'il n'existe pas
     save_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "artifacts", "sanity_check")
     os.makedirs(save_dir, exist_ok=True)
 
-    # Récupération du nom du label
     infos_path = os.path.join(os.path.dirname(__file__), 'dataset_infos.json')
     with open(infos_path, 'r') as f:
         dataset_infos = json.load(f)
     
-    # Conversion du label index -> nom lisible
     label_name = dataset_infos["Maysee--tiny-imagenet"]["features"]["label"]["names"][label_idx]
-    label_str = i2d.get(label_name, str(label_name)) # Utilise .get pour éviter un crash si clé manquante
+    label_str = i2d.get(label_name, str(label_name))
 
     fig = plt.figure(figsize=(10, 5))
     fig.suptitle(f"Image {index} - Label: {label_str}", fontsize=14)
     
-    # --- Image Originale ---
     plt.subplot(1, 2, 1)
-    # Conversion Tensor -> Numpy (C, H, W) -> (H, W, C)
     if torch.is_tensor(original_img):
         original_img = original_img.cpu().numpy().transpose((1, 2, 0))
     plt.imshow(np.clip(original_img, 0, 1))
     plt.title("Originale")
     plt.axis('off')
     
-    # --- Image Augmentée ---
     plt.subplot(1, 2, 2)
     if torch.is_tensor(augmented_img):
         augmented_img = augmented_img.cpu().numpy().transpose((1, 2, 0))
@@ -58,11 +52,10 @@ def comparaison(original_img, augmented_img, label_idx, index):
 
     plt.tight_layout()
     
-    # --- SAUVEGARDE AU LIEU D'AFFICHAGE ---
     filename = f"check_img_{index}_{label_str}.png"
     save_path = os.path.join(save_dir, filename)
     plt.savefig(save_path)
-    plt.close(fig) # Important pour libérer la mémoire
+    plt.close(fig)
     
     print(f"Image sauvegardée : {save_path}")
 

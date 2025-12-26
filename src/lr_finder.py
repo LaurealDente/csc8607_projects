@@ -36,11 +36,11 @@ def find_best_lr_wd(results: List[Tuple[float, float, float]]) -> Tuple[float, f
     if not results:
         raise ValueError("La liste de résultats ne peut pas être vide.")
 
-    # Trier par loss croissante
+
     results_sorted = sorted(results, key=lambda x: x[2])
     best_lr, best_wd, min_loss = results_sorted[0]
 
-    # Fenêtre 'stable' : LR pour lesquels la loss reste proche du minimum
+
     loss_threshold = min_loss * 1.05
     lr_candidates_for_best_wd = [res for res in results if res[1] == best_wd]
     stable_lrs = [lr for lr, wd, loss in lr_candidates_for_best_wd if loss <= loss_threshold]
@@ -50,7 +50,7 @@ def find_best_lr_wd(results: List[Tuple[float, float, float]]) -> Tuple[float, f
     else:
         stable_window = (best_lr, best_lr)
 
-    # Affichage propre
+
     print("\n" + "=" * 50)
     print("       Analyse des résultats de la recherche d'hyperparamètres")
     print("=" * 50)
@@ -94,8 +94,7 @@ def lr_finder(
     results: List[Tuple[float, float, float]] = []
     initial_state = copy.deepcopy(modele.state_dict())
     modele.to(device)
-
-    # Préparation TensorBoard
+    
     runs_dir = config["paths"]["runs_dir"]
     os.makedirs(runs_dir, exist_ok=True)
 
@@ -114,12 +113,10 @@ def lr_finder(
 
     for lr in lr_list:
         for wd in wd_list:
-            # Réinitialiser le modèle à son état initial pour chaque essai
             modele.load_state_dict(initial_state)
 
             optimizer = model.get_optimizer(modele, config, weight_decay=wd, lr=lr)
 
-            # Phase d'entraînement courte
             modele.train()
             for epoch in range(epochs_per_trial):
                 for inputs, targets in train_dataloader:
@@ -131,7 +128,6 @@ def lr_finder(
                     loss.backward()
                     optimizer.step()
 
-            # Phase d'évaluation
             total_loss = 0.0
             count = 0
             modele.eval()
@@ -146,7 +142,6 @@ def lr_finder(
             avg_loss = total_loss / count if count > 0 else float("inf")
             print(f"  Test -> LR: {lr:.1e}, WD: {wd:.1e}, Loss: {avg_loss:.4f}")
 
-            # Log dans TensorBoard (un scalar par essai)
             writer.add_scalar("lr_finder/loss", avg_loss, trial_idx)
             writer.add_scalar("lr_finder/lr", lr, trial_idx)
             writer.add_scalar("lr_finder/wd", wd, trial_idx)
@@ -164,28 +159,25 @@ def main():
     parser.add_argument("--config", type=str, required=True, help="Chemin vers le fichier de config YAML")
     args = parser.parse_args()
 
-    # Chargement de la config YAML
+
     with open(os.path.join(os.getcwd(), args.config), "r") as f:
         config = yaml.safe_load(f)
-
-    print(config)
-
-    # Dataset utilisé pour la recherche
+        
     full_train_dataset = augmentation.AugmentationDataset(
         data_path=config["dataset"]["split"]["train"]["chemin"],
-        transform=None,  # pas d'augmentation pour la recherche LR/WD
+        transform=None,
     )
 
-    # Sous-ensemble stratifié (en fonction de ta fonction de data_loading)
+
     train_loader_subset = data_loading.create_stratified_subset_loader_manual(
         dataset=full_train_dataset,
-        subset_size=config["train"]["taille_finder"],  # à ajuster si besoin en fonction des ressources
+        subset_size=config["train"]["taille_finder"],
         batch_size=config["train"]["batch_size"],
     )
 
     device = torch.device(config["train"]["device"] if torch.cuda.is_available() else "cpu")
 
-    # Listes de LR et WD à tester
+
     learning_rates_to_test = [1e-5, 5e-5, 1e-4, 5e-4, 1e-3, 5e-3, 1e-2]
     weight_decays_to_test = [0.0, 1e-5, 1e-4, 1e-3]
 
