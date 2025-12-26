@@ -348,6 +348,7 @@ def main():
     train_loader = data_loading.get_dataloaders("train", aug_pipeline, base_config)
 
     if args.charge_datasets:
+        print("Enregistrement des données")
         # Preprocessing (Fixe)
         preprocessing.get_preprocess_transforms(current_config)
         
