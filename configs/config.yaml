@@ -24,6 +24,15 @@ preprocess:
   normalize: True
   text_tokenizer: null
 
+perte_model:
+  model : 
+    block_config : [3,3,3]
+    dropout : 0.1
+    num_classes : 200
+    residual : true
+    batch_norm : true
+    activation : relu
+
 augment:
   random_flip: true
   random_crop:  

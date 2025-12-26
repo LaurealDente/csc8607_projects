@@ -88,19 +88,25 @@ def overfitting_small(modele, config):
     print(f"Logs disponibles : {tensorboard_path}")
     writer.close()
 
-def perte_premier_batch(modele, dataloader, config):
+def perte_premier_batch(config:dict):
     print("\n>>> Vérification PERTE INITIALE...")
     run_name = f"sanity_check_{time.strftime('%Y%m%d-%H%M%S')}"
     runs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), config["paths"]["runs_dir"])
     writer = SummaryWriter(log_dir=os.path.join(runs_dir, "sanity_check", run_name))
     
+    modele = model.build_model(config["perte_model"])
+
     criterion = nn.CrossEntropyLoss()
     device = torch.device(config["train"]["device"] if torch.cuda.is_available() else "cpu")
     modele.to(device)
     modele.train() # Mode train pour checker les gradients
 
+
+    aug_pipeline = augmentation.get_augmentation_transforms(config)
+    train_loader = data_loading.get_dataloaders("train", aug_pipeline, config)
+
     try:
-        first_batch_images, first_batch_labels = next(iter(dataloader))
+        first_batch_images, first_batch_labels = next(iter(train_loader))
     except StopIteration:
         print("Erreur : Le DataLoader est vide.")
         return
@@ -247,7 +253,7 @@ def train(modele, train_loader, val_loader, config, variant_name="default"):
         train_acc = correct / total
         train_f1 = f1_score(all_train_labels, all_train_preds, average="macro")
 
-        # --- VAL LOOP ---
+
         modele.eval()
         val_running_loss = 0.0
         val_correct = 0
@@ -380,30 +386,30 @@ def main():
         current_config["model"]["version_name"] = variant_name
         
         
-        # A. Preprocessing (Fixe)
+        # Preprocessing (Fixe)
         preprocessing.get_preprocess_transforms(current_config)
 
-        # B. Modèle
+        # Modèle
         modele = model.build_model(current_config)
 
-        # C. DataLoaders
-        aug_pipeline = augmentation.get_augmentation_transforms(current_config)
-        train_loader = data_loading.get_dataloaders("train", aug_pipeline, current_config)
-        
-        # Si on fait juste une perte initiale ou overfit, on n'a pas forcément besoin du val_loader tout de suite
-        val_loader = data_loading.get_dataloaders("val", None, current_config)
-
-        # D. Exécution des tâches demandées
+        # Exécution des tâches demandées
         
         # Tâche 1: Sanity Check Loss
         if args.perte_initiale:
-            perte_premier_batch(modele, train_loader, current_config)
+            perte_premier_batch(base_config)
             continue
         
         # Tâche 2: Overfit Small (Exclusif ou cumulatif selon besoin, ici exclusif souvent mieux)
         if args.overfit_small:
             overfitting_small(modele, current_config)
             continue # On passe à la variante suivante, pas de train complet en mode overfit
+
+        # DataLoaders
+        aug_pipeline = augmentation.get_augmentation_transforms(current_config)
+        train_loader = data_loading.get_dataloaders("train", aug_pipeline, current_config)
+        
+        # Si on fait juste une perte initiale ou overfit, on n'a pas forcément besoin du val_loader tout de suite
+        val_loader = data_loading.get_dataloaders("val", None, current_config)
 
         # Tâche 3: Entraînement complet (si on n'est pas en overfit only)
         # Note: Si perte_initiale était True, on continue quand même vers le train

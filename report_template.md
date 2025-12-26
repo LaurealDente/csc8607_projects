@@ -197,7 +197,7 @@ Ces deux hyperparamètres vont parfaitement de paire.
 
 **M2.** Donnez la **loss initiale** observée et dites si elle est cohérente. Indiquez la forme du batch et la forme de sortie du modèle.
 
-La loss initiale obtenue est de 5.2958, très proche de la loss théorique, cela signifie que le modèle est cohérent. Le batch est de forme (32,3,64,64) et la sortie du modèle de forme (32, 200).
+La loss initiale obtenue est de 5.2958, très proche de la loss théorique, cela signifie que le modèle est cohérent. Le batch est de forme (32,3,64,64) et la sortie du modèle de forme (32, 200). Pour cela nous utilisons la configuration de blocks (3,3,3) et 0.3.
 
 ---
 
