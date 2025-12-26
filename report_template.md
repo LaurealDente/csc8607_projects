@@ -483,14 +483,14 @@ En comparant le score F1, nous constatons une amélioration de la performance su
 - **Config utilisée** : joindre un extrait de `configs/config.yaml` (sections pertinentes)
 
     ```yaml
-      dataset
+      dataset :
     ```
     But : Définit le dataset Tiny-ImageNet et ses splits.
     Utilisation : data_loading.get_dataloaders() lit les chemins train/val/test.
     preprocess
 
     ```yaml
-      preprocess
+      preprocess :
     ```
 
     But : Transformations fixes (normalisation, resize).
@@ -498,7 +498,7 @@ En comparant le score F1, nous constatons une amélioration de la performance su
     augment / augment_final
 
     ```yaml
-      augment
+      augment :
     ```
 
     But : Augmentations stochastiques (flip, crop, jitter).
@@ -506,7 +506,7 @@ En comparant le score F1, nous constatons une amélioration de la performance su
     model
 
     ```yaml
-      model
+      model :
     ```
 
     But : Architecture ResNet (blocs, dropout, batch_norm).
@@ -514,7 +514,7 @@ En comparant le score F1, nous constatons une amélioration de la performance su
     grid_final
 
     ```yaml
-      grid_final
+      grid_final :
     ```
 
     But : Hyperparams pour grid search finale (lr_high, wd_high...).
@@ -522,7 +522,7 @@ En comparant le score F1, nous constatons une amélioration de la performance su
     train
 
     ```yaml
-      train
+      train :
     ```
 
     But : Hyperparams entraînement (batch_size, epochs, schedulers).
@@ -530,7 +530,7 @@ En comparant le score F1, nous constatons une amélioration de la performance su
     optimizer (dans train)
 
     ```yaml
-      metrics
+      metrics :
     ```
 
     But : Adam/SGD + lr/weight_decay/momentum.
@@ -538,7 +538,7 @@ En comparant le score F1, nous constatons une amélioration de la performance su
     scheduler (dans train)
 
     ```yaml
-      hparams
+      hparams :
     ```
 
     But : Stratégie évolution LR (cosine, step...).
@@ -546,7 +546,7 @@ En comparant le score F1, nous constatons une amélioration de la performance su
     metrics
 
     ```yaml
-      metrics
+      metrics :
     ```
 
     But : Liste métriques à tracker (accuracy, f1).
@@ -554,7 +554,7 @@ En comparant le score F1, nous constatons une amélioration de la performance su
     hparams / grid_search
 
     ```yaml
-      grid_search
+      grid_search :
     ```
 
     But : Espace hyperparams pour mini-grid ou finder LR/WD.
@@ -562,7 +562,7 @@ En comparant le score F1, nous constatons une amélioration de la performance su
     paths
 
     ```yaml
-      paths
+      paths :
     ```
 
     But : Dossiers runs/artifacts pour TensorBoard + checkpoints.
@@ -570,14 +570,14 @@ En comparant le score F1, nous constatons une amélioration de la performance su
     train_final / augment_final / model_final
 
     ```yaml
-      augment_final
+      augment_final :
     ```
 
     But : Config unique pour run final (--final_run).
     Utilisation : train_final avec le flag
 
     ```yaml
-    model_final
+    model_final :
     ```
     But : Config du model final
     Utilisation : train_final avec le flag
@@ -597,9 +597,9 @@ python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/besto
 
 * **Artifacts requis présents** :
 
-  * [ ] `runs/` (runs utiles uniquement)
-  * [ ] `artifacts/best.ckpt`
-  * [ ] `configs/config.yaml` aligné avec la meilleure config
+  * [X] `runs/` (runs utiles uniquement)
+  * [X] `artifacts/best.ckpt`
+  * [X] `configs/config.yaml` aligné avec la meilleure config
 
 ---
 
