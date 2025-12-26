@@ -405,36 +405,40 @@ def main():
 
     # 6. Boucle d'exécution
     for variant_name, hparams in variants_to_run.items():
-        print(f"\n{'='*20} Traitement : {variant_name} {'='*20}")
-        print(f"hyperparamètres : {hparams}")
 
-        # Copie propre de la config de base (déjà patchée si final_run)
-        current_config = yaml.safe_load(yaml.dump(base_config))
 
-        # Surcharges CLI (priorité absolue)
-        if args.max_epochs is not None:
-            current_config["train"]["epochs"] = args.max_epochs
-        if args.max_steps is not None:
-            current_config["train"]["max_steps"] = args.max_steps
+        if ((variant_name == "A" or variant_name == "B") and (not args.final_run) and (not args.perte_initiale) and (not args.overfit_small)) or (variant_name == "Special" and args.final_run):
 
-        # Application des hyperparamètres spécifiques à la variante
-        # (Ces params écrasent ceux de model/model_final)
-        if hparams:
-            for k, v in hparams.items():
-                current_config["model"][k] = v
-        
-        current_config["model"]["version_name"] = variant_name
+            print(f"\n{'='*20} Traitement : {variant_name} {'='*20}")
+            print(f"hyperparamètres : {hparams}")
 
-        # Construction
-        modele = model.build_model(current_config)
-        aug_pipeline = augmentation.get_augmentation_transforms(current_config)
+            # Copie propre de la config de base (déjà patchée si final_run)
+            current_config = yaml.safe_load(yaml.dump(base_config))
 
-        # Loaders
-        train_loader = data_loading.get_dataloaders("train", aug_pipeline, current_config)
-        val_loader = data_loading.get_dataloaders("val", None, current_config)
+            # Surcharges CLI (priorité absolue)
+            if args.max_epochs is not None:
+                current_config["train"]["epochs"] = args.max_epochs
+            if args.max_steps is not None:
+                current_config["train"]["max_steps"] = args.max_steps
 
-        # Lancement de l'entraînement
-        train(modele, train_loader, val_loader, current_config, variant_name=variant_name)
+            # Application des hyperparamètres spécifiques à la variante
+            # (Ces params écrasent ceux de model/model_final)
+            if hparams:
+                for k, v in hparams.items():
+                    current_config["model"][k] = v
+            
+            current_config["model"]["version_name"] = variant_name
+
+            # Construction
+            modele = model.build_model(current_config)
+            aug_pipeline = augmentation.get_augmentation_transforms(current_config)
+
+            # Loaders
+            train_loader = data_loading.get_dataloaders("train", aug_pipeline, current_config)
+            val_loader = data_loading.get_dataloaders("val", None, current_config)
+
+            # Lancement de l'entraînement
+            train(modele, train_loader, val_loader, current_config, variant_name=variant_name)
 
 if __name__ == "__main__":
     main()
