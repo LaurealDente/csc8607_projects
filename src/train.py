@@ -344,15 +344,14 @@ def main():
 
     data_loading.get_data(base_config)
 
+    if args.charge_datasets:
+        print("Enregistrement des données")
+        preprocessing.get_preprocess_transforms(base_config)
+
     modele = model.build_model(base_config["perte_model"])
 
     aug_pipeline = augmentation.get_augmentation_transforms(base_config)
     train_loader = data_loading.get_dataloaders("train", aug_pipeline, base_config)
-
-    if args.charge_datasets:
-        print("Enregistrement des données")
-        # Preprocessing (Fixe)
-        preprocessing.get_preprocess_transforms(base_config)
         
     # Tâche 1: Sanity Check Loss
     if args.perte_initiale:
