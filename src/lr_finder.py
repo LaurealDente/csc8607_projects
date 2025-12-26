@@ -168,6 +168,8 @@ def main():
     with open(os.path.join(os.getcwd(), args.config), "r") as f:
         config = yaml.safe_load(f)
 
+    print(config)
+
     # Dataset utilisé pour la recherche
     full_train_dataset = augmentation.AugmentationDataset(
         data_path=config["dataset"]["split"]["train"]["chemin"],
