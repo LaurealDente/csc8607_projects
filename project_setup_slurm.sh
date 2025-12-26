@@ -59,16 +59,16 @@ echo "🚀 Préparation des données..."
 salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --perte_initiale --charge_datasets"
 
 echo "🚀 Test Overfit..."
-salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --overfit_small"
+salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --overfit_small --charge_datasets"
 
 echo "🚀 LR Finder..."
 salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.lr_finder --config configs/config.yaml"
 
 echo "🚀 Entraînement Standard (A & B)..."
-salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml"
+salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --charge_datasets"
 
 echo "🚀 Entraînement Final (Special)..."
-salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --final_run"
+salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --final_run --charge_datasets"
 
 # Évaluations (Vérification des fichiers via python car le bash controller ne voit pas forcément les fichiers créés sur le noeud immédiatement ou si le path diffère)
 echo "🚀 Évaluations..."
