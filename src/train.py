@@ -92,6 +92,8 @@ def perte_premier_batch(config:dict, modele):
     run_name = f"sanity_check_{time.strftime('%Y%m%d-%H%M%S')}"
     runs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), config["paths"]["runs_dir"])
     writer = SummaryWriter(log_dir=os.path.join(runs_dir, "sanity_check", run_name))
+    
+    modele = model.build_model(config["perte_model"])
 
     criterion = nn.CrossEntropyLoss()
     device = torch.device(config["train"]["device"] if torch.cuda.is_available() else "cpu")
@@ -341,12 +343,12 @@ def main():
     utils.set_seed(seed_to_use) # Supposant que vous avez utils.set_seed
     base_config["train"]["seed"] = seed_to_use
     print(f"Seed fixée à : {seed_to_use}")
-    
-    modele = model.build_model(base_config["perte_model"])
+
+
         
     # Tâche 1: Sanity Check Loss
     if args.perte_initiale:
-        perte_premier_batch(base_config, modele)
+        perte_premier_batch(base_config)
 
     # Tâche 2: Overfit Small (Exclusif ou cumulatif selon besoin, ici exclusif souvent mieux)
     if args.overfit_small:
