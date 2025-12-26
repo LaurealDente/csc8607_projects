@@ -3,91 +3,87 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd "$SCRIPT_DIR" || exit 1
 
-echo "Nettoyage des répertoires..."
-for dir in runs results data artifacts; do
-    mkdir -p "$dir"
-    rm -rf "$dir"/*
-done
+# Création du dossier de logs pour vérifier les résultats demain
+mkdir -p logs
+
+# Nettoyage
+rm -rf runs results/* data/* artifacts/*
 
 ENV_NAME="csc8607_env"
 
-if [ -n "$CONDA_EXE" ]; then
-    CONDA_BASE="$(dirname $(dirname "$CONDA_EXE"))"
-elif [ -d "$HOME/miniforge3" ]; then
-    CONDA_BASE="$HOME/miniforge3"
-elif [ -d "$HOME/miniconda3" ]; then
-    CONDA_BASE="$HOME/miniconda3"
-elif [ -d "$HOME/anaconda3" ]; then
-    CONDA_BASE="$HOME/anaconda3"
-else
-    echo "Erreur : Conda non trouvé."
-    exit 1
+# Configuration de l'environnement (exécutée sur le login node pour être propagée)
+if [[ -z "$VIRTUAL_ENV" && -z "$CONDA_PREFIX" ]]; then
+    if command -v mamba &> /dev/null; then
+        CONDA_CMD="mamba"
+    elif command -v conda &> /dev/null; then
+        CONDA_CMD="conda"
+    else
+        echo "Error: conda/mamba not found."
+        exit 1
+    fi
+
+    if ! $CONDA_CMD env list | grep -q "$ENV_NAME"; then
+        $CONDA_CMD create -n "$ENV_NAME" python=3.10 -y
+    fi
+    
+    source "$(dirname $(dirname $(which $CONDA_CMD)))/etc/profile.d/conda.sh"
+    $CONDA_CMD activate "$ENV_NAME"
 fi
 
-CONDA_SH="$CONDA_BASE/etc/profile.d/conda.sh"
-source "$CONDA_SH"
-
-if ! conda env list | grep -q "$ENV_NAME"; then
-    echo "Création de l'environnement..."
-    mamba create -n "$ENV_NAME" python=3.10 -y || conda create -n "$ENV_NAME" python=3.10 -y
-fi
-
-conda activate "$ENV_NAME"
 if [ -f "requirements.txt" ]; then
-    echo "Installation des dépendances..."
     pip install -r requirements.txt
 fi
 
-SLURM_OPTS="--time=10:00:00 --gres=gpu:4 --cpus-per-task=8 --mem=32G"
-ACTIVATE_CMD="source $CONDA_SH && conda activate $ENV_NAME"
+# Définition des ressources pour CHAQUE job
+# srun va demander ces ressources, lancer la commande, et attendre la fin.
+SLURM_ARGS="--time=10:00:00 --gres=gpu:4 --cpus-per-task=8 --mem=32G"
 
-echo ">>> [ETAPE 1] Génération des données (Bloquant)..."
-salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --perte_initiale --charge_datasets"
+echo "--- Démarrage de la séquence ---"
 
-if [ $? -ne 0 ]; then
-    echo "Échec de la génération des données."
-    exit 1
+echo "[1/9] Perte Initiale"
+srun $SLURM_ARGS --job-name=init --output=logs/01_perte_initiale_%j.log \
+    python -m src.train --config configs/config.yaml --perte_initiale --charge_datasets
+
+echo "[2/9] Overfit Small"
+srun $SLURM_ARGS --job-name=overfit --output=logs/02_overfit_small_%j.log \
+    python -m src.train --config configs/config.yaml --overfit_small --charge_datasets
+
+echo "[3/9] Grid Search"
+srun $SLURM_ARGS --job-name=grid --output=logs/03_grid_search_%j.log \
+    python -m src.grid_search --config configs/config.yaml
+
+echo "[4/9] LR Finder"
+srun $SLURM_ARGS --job-name=lrfind --output=logs/04_lr_finder_%j.log \
+    python -m src.lr_finder --config configs/config.yaml
+
+echo "[5/9] Train Standard"
+srun $SLURM_ARGS --job-name=train --output=logs/05_train_standard_%j.log \
+    python -m src.train --config configs/config.yaml --charge_datasets
+
+echo "[6/9] Train Final"
+srun $SLURM_ARGS --job-name=final --output=logs/06_train_final_%j.log \
+    python -m src.train --config configs/config.yaml --final_run --charge_datasets
+
+# Les vérifications "if" se font sur le nœud maître, le "srun" lance le job si la condition est vraie
+
+if [ -f "artifacts/best_of_A.ckpt" ]; then
+    echo "[7/9] Evaluate A"
+    srun $SLURM_ARGS --job-name=evalA --output=logs/07_evaluate_A_%j.log \
+        python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/best_of_A.ckpt --model A
+else
+    echo "Skip Evaluate A (checkpoint not found)" >> logs/skipped.log
 fi
 
-echo ">>> Lancement des tâches parallèles..."
+if [ -f "artifacts/best_of_B.ckpt" ]; then
+    echo "[8/9] Evaluate B"
+    srun $SLURM_ARGS --job-name=evalB --output=logs/08_evaluate_B_%j.log \
+        python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/best_of_B.ckpt --model B
+fi
 
-(
-    echo "   [Grid Search] Démarré..."
-    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.grid_search --config configs/config.yaml"
-    echo "   [Grid Search] Terminé."
-) &
+if [ -f "artifacts/best_of_Special.ckpt" ]; then
+    echo "[9/9] Evaluate Special"
+    srun $SLURM_ARGS --job-name=evalS --output=logs/09_evaluate_Special_%j.log \
+        python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/best_of_Special.ckpt --model Special
+fi
 
-(
-    echo "   [Overfit Test] Démarré..."
-    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --overfit_small"
-    echo "   [Overfit Test] Terminé."
-) &
-
-(
-    echo "   [LR Finder] Démarré..."
-    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.lr_finder --config configs/config.yaml"
-    echo "   [LR Finder] Terminé."
-) &
-
-(
-    echo "   [Train Standard A/B] Démarré..."
-    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml"
-    
-    echo "   [Eval Standard A/B] Démarrée..."
-    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && \
-        python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/best_of_A.ckpt --model A && \
-        python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/best_of_B.ckpt --model B"
-    echo "   [Train/Eval Standard] Terminé."
-) &
-
-(
-    echo "   [Train Final Special] Démarré..."
-    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --final_run"
-    
-    echo "   [Eval Final Special] Démarrée..."
-    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/best_of_Special.ckpt --model Special"
-    echo "   [Train/Eval Final] Terminé."
-) &
-
-wait
-echo ">>> Toutes les tâches sont terminées."
+echo "--- Séquence terminée. Vérifiez le dossier logs/ ---"
