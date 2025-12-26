@@ -38,7 +38,7 @@ if [ -f "requirements.txt" ]; then
     pip install -r requirements.txt
 fi
 
-SLURM_OPTS="--time=10:00:00 --gres=gpu:1 --cpus-per-task=8 --mem=32G"
+SLURM_OPTS="--time=10:00:00 --gres=gpu:4 --cpus-per-task=8 --mem=32G"
 ACTIVATE_CMD="source $CONDA_SH && conda activate $ENV_NAME"
 
 echo ">>> [ETAPE 1] Génération des données (Bloquant)..."
@@ -59,7 +59,7 @@ echo ">>> Lancement des tâches parallèles..."
 
 (
     echo "   [Overfit Test] Démarré..."
-    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --overfit_small"
+    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --overfit_small --charge_datasets"
     echo "   [Overfit Test] Terminé."
 ) &
 
@@ -71,7 +71,7 @@ echo ">>> Lancement des tâches parallèles..."
 
 (
     echo "   [Train Standard A/B] Démarré..."
-    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml"
+    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --charge_datasets"
     
     echo "   [Eval Standard A/B] Démarrée..."
     salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && \
@@ -82,7 +82,7 @@ echo ">>> Lancement des tâches parallèles..."
 
 (
     echo "   [Train Final Special] Démarré..."
-    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --final_run"
+    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --final_run --charge_datasets"
     
     echo "   [Eval Final Special] Démarrée..."
     salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/best_of_Special.ckpt --model Special"
