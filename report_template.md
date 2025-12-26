@@ -41,9 +41,9 @@ Celui-ci est composé de 110,000 lignes et de 2 colonnes. La première colonne, 
 
 | Split | #Exemples | Particularités (déséquilibre, longueur moyenne, etc.) |
 |------:|----------:|--------------------------------------------------------|
-| Train |           |                                                        |
-| Val   |           |                                                        |
-| Test  |           |                                                        |
+| Train |           | 90000 lignes                                           |
+| Val   |           | 10000 lignes                                           |
+| Test  |           | 10000 lignes                                           |
 
 **D2.** Donnez la taille de chaque split et le nombre de classes. 
 
@@ -52,8 +52,8 @@ Le dataset est composé de deux split, le premier est celui d'entraînement (tra
 **D3.** Si vous avez créé un split (ex. validation), expliquez **comment** (stratification, ratio, seed).
 
 Le dataset proposait déjà deux datasets un train et un de validation. J'ai créé un split de test à partir du dataset de train.
-Pour cela, j'ai utilisé un ratio de 0.1 afin d'avoir un même nombre de valeurs entre le split de test et de validation qui ont 1000 lignes.
-Le split de train a alors 9000 lignes restantes pour l'entraînement.
+Pour cela, j'ai utilisé un ratio de 0.1 afin d'avoir un même nombre de valeurs entre le split de test et de validation qui ont 10000 lignes.
+Le split de train a alors 90000 lignes restantes pour l'entraînement.
 
 Pour la stratification, j'ai ciblé les valeurs de la colonne label afin d'équilibrer les trois splits. Ceci permettra un apprentissage de qualité et une meilleure évaluation du modèle.
 
@@ -76,16 +76,16 @@ Les labels sont tous des entiers entre 0 et 199, il n'y a aucun multi labels.
 
 Listez précisément les opérations et paramètres (valeurs **fixes**) :
 
-- Vision : resize = , center-crop = None, normalize = (mean=[0.4802, 0.4480, 0.3974], std=[0.2765, 0.2689, 0.2816])
+- Vision : resize = None, center-crop = None, normalize = (mean=[0.4802, 0.4480, 0.3974], std=[0.2765, 0.2689, 0.2816])
 
 **D6.** Quels **prétraitements** avez-vous appliqués (opérations + **paramètres exacts**) et **pourquoi** ?  
 
-Les prétraitements appliqués au dataset sont une convertion de toutes les images en format RGB car 2% sont stockées en format L.
+Les prétraitements appliqués au dataset sont une conversion de toutes les images en format RGB car 2% sont stockées en format L.
 La deuxième transformation est la conversion en tensor. Les valeurs des tensors sont comprises entre 0 et 1, le calcul de la moyenne et de l'écart type permet de normaliser ces tensors. La normalisation va permettre d'avoir des entrées sur des échelles similaires. Elle accélère la convergence du modèle et stabilise les calculs numériques.
 
 **D7.** Les prétraitements diffèrent-ils entre train/val/test (ils ne devraient pas, sauf recadrage non aléatoire en val/test) ?
 
-Les prétraitrements sont similaires entre les trois datasets, la normalisation est calculée sur les moyennes et les ecarts types du datset train afin de ne pas faire de data leaking.
+Les prétraitrements sont similaires entre les trois datasets, la normalisation est calculée sur les moyennes et les ecarts types du dataset train afin de ne pas faire de data leaking.
 
 ### 1.4 Augmentation de données — _train uniquement_
 
@@ -97,35 +97,38 @@ Les prétraitrements sont similaires entre les trois datasets, la normalisation 
 Afin d'augmenter la volumétrie des données d'entraînement, j'ai utilisé le random flip, le random crop et le color jitter.
 Le random flip est défini à 0.5 dans le code pour retourner aléatoirement l'image lors de l'entraînement avec une probabilité d'1/2. Il est possible de l'utiliser sur les images de notre dataset car le modèle ne se focalise pas sur des textes ou équivalents nécessitant un sens défini.
 Le random crop permet de ne prendre qu'une partie de l'image de base pour entraîner le modèle sur des centrages différents. Ici les images sont cropées au maximum de 20% qui va permettre d'éviter la perte complète de l'objet examiné.
-Le color jitter permet d'influencer les paramètres de la photo représentant des contextes photographiques pouvant être changeants. La luminosité, le contrast, la saturation et la teinte de manière aléatoire entre x1.2 et x0.8 car tous les paramètres sont réglés à 0.2. 
+Le color jitter permet d'influencer les paramètres de la photo représentant des contextes photographiques pouvant être changeants. La luminosité, le contrast, la saturation et la teinte de manière aléatoire entre x1.4 et x0.6 car tous les paramètres sont réglés à 0.4. 
 
 
 **D9.** Les augmentations **conservent-elles les labels** ? Justifiez pour chaque transformation retenue.
 
 Les labels sont conservés pour chacune des augmentations, en effet ces modifications s'appliqueront sur l'image récupérées de base lors du DataLoader. Au cours de l'entraînement, DataLoader appel _getitem() qui modifiera les images sur la base des probabilités citées auparavant.
-Le randomhorizontalfip retourne une image, il ne modifie pas le label hormis lorsque ce sont des textes où nous perdons de l'information. Ici il est applicable sans perte la classification ne se repose pas sur des images avec des textes.
+Le randomhorizontalfip retourne une image, il ne modifie pas le label hormis lorsque ce sont des textes où nous perdons de l'information. Ici il est applicable sans perte, la classification ne se repose pas sur des images avec des textes.
 Le color jitter modifie les paramètres de l'image mais celle-ci sont toujours autant reconnaissables, elles gardent leurs caractéristiques principales. Les labels sont gardés.
-Le random crop pourrait entraîner une perte d'information sur l'image et faire perdre la logique image-label, cependant ici le crop est de 80 à 100% ce qui garde la plus grande partie de l'image et évite de perdre totalement l'objet étudié.
+Le random crop pourrait entraîner une perte d'information sur l'image et faire perdre la logique image-label, cependant ici le crop est de 60 à 100% ce qui garde la plus grande partie de l'image et évite de perdre totalement l'objet étudié.
 
 ### 1.5 Sanity-checks
 
 - **Exemples** après preprocessing/augmentation (insérer 2–3 images/spectrogrammes) :
 
-> _Insérer ici 2–3 captures illustrant les données après transformation._
-![alt text](images/check_img_77669_pole.png)
-![alt text](images/check_img_31474_chain.png)
-![alt text](<images/check_img_70739_dragonfly, darning needle, devil's darning needle, sewing needle, snake feeder, snake doctor, mosquito hawk, skeeter hawk.png>)
-
-
-
 **D10.** Montrez 2–3 exemples et commentez brièvement. 
 On voit un changement des couleurs (colorjitter) un recadrage (randomcrop) et un horizontalflip après augmentation des images.
 
+> _Insérer ici 2–3 captures illustrant les données après transformation._
+![alt text](images/check_img_77669_pole.png)
+Nous voyons ici principalement une image avant et après un horizontal flip.
+
+![alt text](images/check_img_31474_chain.png)
+
+Nous voyons clairement un randomcrop apparaître.
+
+![alt text](<images/check_img_70739_dragonfly, darning needle, devil's darning needle, sewing needle, snake feeder, snake doctor, mosquito hawk, skeeter hawk.png>)
+
+Le changement de couleur nous indique une application correcte d'un colorgitter.
 
 **D11.** Donnez la **forme exacte** d’un batch train (ex. `(batch, C, H, W)` ou `(batch, seq_len)`), et vérifiez la cohérence avec `meta["input_shape"]`.
 [32, 3, 64, 64]
-
-
+Cette forme correspond à ce que l'on peut voir dans la config à la clef model puis input_shape. Cela correspond bien à l'entrée de notre dataset.
 
 ---
 
@@ -164,14 +167,14 @@ Ici, l'exemple d'un batch de 32 est pris. Il se peut que l'utilisation soit ensu
   - Tête (GAP / linéaire) → logits (dimension = nb classes)
       AdaptativeAvgPool2d, Flatten, Linear
       Entrée (32, 256, 16, 16) Sortie (32, 200) (batch_size, num_classes)
-      Pas de fonction d'ac
+      Pas de soft max car elle est déjà inclue dans la fonction de perte crossentropyloss.
 
 - **Loss function** :
   - Multi-classe : CrossEntropyLoss
 
 - **Sortie du modèle** : forme = __(32, 200)__ (ou __(batch_size, num_attributes)__)
 
-- **Nombre total de paramètres** : `2 805 448` ou `4 584 776` en fonction du nombre de blocs résiduels
+- **Nombre total de paramètres** : `2 805 448` pour des blocs résiduels de [2,2,2] ou `4 584 776` pour des blocs résiduels de [3,3,3] en fonction du nombre de blocs résiduels
 
 **M1.** Décrivez l’**architecture** complète et donnez le **nombre total de paramètres**.  
 Expliquez le rôle des **2 hyperparamètres spécifiques au modèle** (ceux imposés par votre sujet).
@@ -230,38 +233,39 @@ Ce comportement prouve l'overfitting car il démontre que le modèle a une capac
 **M4.** Justifiez en 2–3 phrases le choix du **LR** et du **weight decay**.
 Classement des combinaisons (de la meilleure à la moins bonne):
 
-    Learning Rate  Weight Decay      Loss
-0         0.00010       0.00001  4.906494
-1         0.00010       0.00010  4.924708
-2         0.00010       0.00000  4.944475
-3         0.00050       0.00100  4.953686
-4         0.00005       0.00010  4.959709
-5         0.00005       0.00000  4.966598
-6         0.00005       0.00100  4.974095
-7         0.00010       0.00100  4.976490
-8         0.00005       0.00001  4.999286
-9         0.00050       0.00000  5.013248
-10        0.00050       0.00001  5.035567
-11        0.00100       0.00000  5.042563
-12        0.00050       0.00010  5.115390
-13        0.00100       0.00010  5.164641
-14        0.00500       0.00100  5.187430
-15        0.01000       0.00000  5.221153
-16        0.00001       0.00010  5.231850
-17        0.00001       0.00001  5.233665
-18        0.00001       0.00000  5.235673
-19        0.01000       0.00001  5.239549
-20        0.00001       0.00100  5.246063
-21        0.00500       0.00010  5.250206
-22        0.00500       0.00001  5.272990
-23        0.01000       0.00010  5.286049
-24        0.01000       0.00100  5.287495
-25        0.00500       0.00000  5.334618
-26        0.00100       0.00001  5.424565
-27        0.00100       0.00100  5.496681
 
+| ID | Learning Rate | Weight Decay | Loss     |
+| -- | ------------- | ------------ | -------- |
+| 0  | 0.00010       | 0.00001      | 4.906494 |
+| 1  | 0.00010       | 0.00010      | 4.924708 |
+| 2  | 0.00010       | 0.00000      | 4.944475 |
+| 3  | 0.00050       | 0.00100      | 4.953686 |
+| 4  | 0.00005       | 0.00010      | 4.959709 |
+| 5  | 0.00005       | 0.00000      | 4.966598 |
+| 6  | 0.00005       | 0.00100      | 4.974095 |
+| 7  | 0.00010       | 0.00100      | 4.976490 |
+| 8  | 0.00005       | 0.00001      | 4.999286 |
+| 9  | 0.00050       | 0.00000      | 5.013248 |
+| 10 | 0.00050       | 0.00001      | 5.035567 |
+| 11 | 0.00100       | 0.00000      | 5.042563 |
+| 12 | 0.00050       | 0.00010      | 5.115390 |
+| 13 | 0.00100       | 0.00010      | 5.164641 |
+| 14 | 0.00500       | 0.00100      | 5.187430 |
+| 15 | 0.01000       | 0.00000      | 5.221153 |
+| 16 | 0.00001       | 0.00010      | 5.231850 |
+| 17 | 0.00001       | 0.00001      | 5.233665 |
+| 18 | 0.00001       | 0.00000      | 5.235673 |
+| 19 | 0.01000       | 0.00001      | 5.239549 |
+| 20 | 0.00001       | 0.00100      | 5.246063 |
+| 21 | 0.00500       | 0.00010      | 5.250206 |
+| 22 | 0.00500       | 0.00001      | 5.272990 |
+| 23 | 0.01000       | 0.00010      | 5.286049 |
+| 24 | 0.01000       | 0.00100      | 5.287495 |
+| 25 | 0.00500       | 0.00000      | 5.334618 |
+| 26 | 0.00100       | 0.00001      | 5.424565 |
+| 27 | 0.00100       | 0.00100      | 5.496681 |
 
-On observe que LR = 0.0001 et WD = 0.0001 ont la combinaison avec la meilleure performance
+On observe que LR = 0.0001 et WD = 0.0001 (moyenne classement à 12,8 et moyenne 0.00001 à 14,6) ont la combinaison avec la meilleure performance
 
 
 ## 5) Mini grid search (rapide)
@@ -312,13 +316,13 @@ Avec ce classement des meilleurs résultats lors du grid search. Nous voyons cla
   - Hyperparamètre modèle B = `dropout = 0.1, block_config = [2,2,2]`
   - Batch size = `32`
   - Époques = `100` (10–20)
-- **Checkpoint** : `artifacts/best.ckpt` (selon meilleure métrique val)
+- **Checkpoint** : `artifacts/bestof_Modele_A.ckpt` (selon meilleure métrique val)
 
 
 > _Insérer captures TensorBoard :_
 
-Bleu Modele A
-Vert Modele B
+Vert Modele A
+Orange Modele B
 
 Train :
 ![alt text](images/image3.png)
@@ -347,7 +351,7 @@ Il n'y a pas de sous apprentissage car on voit les courbes d'accuracy monter pui
 
 Un début de sur apprentissage apparait malgré les paramètres d'augmentation. Il pourrait être intéressant d'essayer avec des parametres d'augmentation plus aggressifs, grâce à l'enregistrement de la meilleure version, nous avons les poids optimaux.
 
-Le modèle A reste stable jusqu'au bout alors que le modèle B arrête de l'être autour de la 20ème itération. Cela peut venir d'un LR trop grand pour la taille du réseau ou bien simplement le fait que la capacité du modèle ne permet pas de performer sur la tâche.
+Les modèles restent stables, l'apprentissage se déroule sans problème et les courbes suivent une évolution standard.
 
 ---
 
@@ -365,46 +369,52 @@ Le modèle A reste stable jusqu'au bout alors que le modèle B arrête de l'êtr
 Baseline :
   Pour cette comparaison, j'ai tout d'abord fait tourné le modèle initial afin d'avoir un élément de comparaison (run sans warmup et scheduler).
   On obtient un score F1 pique à 0.266152.
+
   ![alt text](images/image10.png)
 
 
 LR haut :
   J'ai augmenté le LR pour voir si mon modèle apprenait plus vite, au moins au début, avec un LR plus haut.
+
   ![alt text](images/image11.png)
+
   Au lieu d'accélérer comme je pensais, le learning rate a été moins performant de A à Z.
 
 WD haut : 
   En pensant pouvoir appliquer une meilleure généralisation du modèle, j'ai essayé avec un weight decay plus haut.
+
   ![alt text](images/image12.png)
+
   On voit bien que la performance du weight decay plus haut est inférieure à la performance de la baseline (0.18 au lieu de 0.26)
   La généralisation peut peut etre mieux apparaître sur un plus grand nombre d'epochs.
 
 Blocks haut : 
   En sortant un peu du chemin indiqué dans l'énoncé j'ai voulu voir la performance du modèle si on ajoutait des blocks résiduels aux couches (4,4,4)
+
   ![alt text](images/image13.png)
+
   On constate que le modèle apprend légèrement mieux mais ce n'est pas si convaincant (0.26279)
 
 Dropout haut : 
   En élevant le dropout, je pensais stabiliser le modèle pour réduire l'overfitting.
+
   ![alt text](images/image14.png)
+
   Le maximum est atteint vers la fin des 100 epochs ce qui montre la stabilité que procure ce dropout plus haut même s'il reste inférieur sur l'entierté de l'entraînement, c'est le seul qui n'overfit pas encore. La courbe continue de croitre, doucement mais elle croie.
 
 
 
-=================================================
-        RÉCAPITULATIF FINAL DES PERFORMANCES (GRID FINALE)
-==================================================
-| Exp_name     |   Epoch | Blocks    |   Dropout |     LR |     WD |   Train_Loss |   Train_Acc |   Train_F1 |   Val_Loss |   Val_Acc |     Val_F1 | Notes   |
-|:-------------|--------:|:----------|----------:|-------:|-------:|-------------:|------------:|-----------:|-----------:|----------:|-----------:|:--------|
-| baseline     |      56 | [3, 3, 3] |       0.1 | 0.0001 | 0.0001 |     1.98263  |      0.5204 | 0.51039    |    3.27661 | 0.279667  | 0.266152   |         |
 
-| blocks_high  |      52 | [4, 4, 4] |       0.1 | 0.0001 | 0.0001 |     1.77169  |      0.5659 | 0.557088   |    3.26334 | 0.273333  | 0.26279    |         |
+        
+**RÉCAPITULATIF FINAL DES PERFORMANCES (GRID FINALE)**
 
-| dropout_high |      97 | [3, 3, 3] |       0.3 | 0.0001 | 0.0001 |     2.29538  |      0.4345 | 0.421385   |    3.27511 | 0.267333  | 0.250162   |         |
-
-| lr_high      |      41 | [3, 3, 3] |       0.1 | 0.0005 | 0.0001 |     2.17922  |      0.4492 | 0.437079   |    3.6431  | 0.218     | 0.203994   |         |
-
-| wd_high      |      57 | [3, 3, 3] |       0.1 | 0.0001 | 0.001  |     3.40785  |      0.2465 | 0.213238   |    3.6049  | 0.212333  | 0.18273    |         |
+| Nom de l'expérience | Epoch | Blocs | Dropout | LR     | WD     | Train Loss | Train Acc | Train F1 | Val Loss | Val Acc | Val F1 |
+| ------------------- | ----- | ----- | ------- | ------ | ------ | ---------- | --------- | -------- | -------- | ------- | ------ |
+| baseline            | 56    |       | 0.1     | 0.0001 | 0.0001 | 1.9826     | 52.04%    | 0.5104   | 3.2766   | 27.97%  | 0.2662 |
+| blocks_high         | 52    |       | 0.1     | 0.0001 | 0.0001 | 1.7717     | 56.59%    | 0.5571   | 3.2633   | 27.33%  | 0.2628 |
+| dropout_high        | 97    |       | 0.3     | 0.0001 | 0.0001 | 2.2954     | 43.45%    | 0.4214   | 3.2751   | 26.73%  | 0.2502 |
+| lr_high             | 41    |       | 0.1     | 0.0005 | 0.0001 | 2.1792     | 44.92%    | 0.4371   | 3.6431   | 21.80%  | 0.2040 |
+| wd_high             | 57    |       | 0.1     | 0.0001 | 0.0010 | 3.4079     | 24.65%    | 0.2132   | 3.6049   | 21.23%  | 0.1827 |
 
 
 ---
@@ -420,11 +430,11 @@ La motivation de cette itération est de voir si on peut, avec un warmup, un res
 
 La possibilité de performance vient principalement du fait qu'à la suite des variations des paramétrages on voyait dropout apprendre encore.
 
-![alt text](image.png)
+![alt text](images/image15.png)
 
-![alt text](image-1.png)
+![alt text](images/image16.png)
 
-![alt text](image-2.png)
+![alt text](images/image17.png)
 
 Grâce à ces graphiques nous observons la différence de performance entre les modèles A et B et le modèle Spécial qui est plus aggressif que les autres. On observe qu'il est plus stable dans son apprentissage et continue d'apprendre à presque 200 épochs (coupure slurm).
 Cela nous promet de bonnes performances en le poussant jusqu'au bout.
@@ -436,18 +446,31 @@ Cela nous promet de bonnes performances en le poussant jusqu'au bout.
 
 - **Checkpoint évalué** : `artifacts/best.ckpt`
 - **Métriques test** :
-  - Metric principale (nom = `_____`) : `_____`
-  - Metric(s) secondaire(s) : `_____`
+  - Metric principale (nom = `F1`) : `0.3509`
+  - Metric(s) secondaire(s) : `accuracy : 0.3538, loss : 3.1876`
+
+```json
+
+  "metrics": {
+    "test_loss": 3.187615735244751,
+    "test_accuracy": 0.3538,
+    "test_f1_macro": 0.35092679062802545
+  }
+```
+
 
 **M9.** Donnez les **résultats test** et comparez-les à la validation (écart raisonnable ? surapprentissage probable ?).
+
+
+En comparant le score F1, nous constatons une amélioration de la performance sur la validation par rapport à la performance sur le test. (0.3396). L'écart est donc le bien venu dans ce contexte le modèle généralise correctement et ne sur-apprend pas sur nos datasets d'entrainement.
 
 ---
 
 ## 10) Limites, erreurs & bug diary (court)
 
-- **Limites connues** (données, compute, modèle) :
-- **Erreurs rencontrées** (shape mismatch, divergence, NaN…) et **solutions** :
-- **Idées « si plus de temps/compute »** (une phrase) :
+- **Limites connues** (données, compute, modèle) : Le modèle doit pouvoir généraliser sur un très grand nombre de classe ce qui rend la performance compliquée étant donné qu'il est limité à 3 couches.
+- **Erreurs rencontrées** (shape mismatch, divergence, NaN…) et **solutions** : Les erreurs rencontrées sont seulement des erreurs de gestion par exemple des oublis d'enregistrement du meilleur modeèle au cours de lancements d'entraînement ou bien de mesure tensorboard. Dans un cas j'ai obtenu des Nan sur ma loss avec tensorboard, j'ai relancé et cela a mieux fonctionné.
+- **Idées « si plus de temps/compute »** (une phrase) : Il serait intéressant de tester d'étoffer le modèle avec plus de blocs à chaque couche (comme j'ai pu tester dans le grid final) mais aussi plus profond avec pourquoi pas une augmentation aussi aggressive que sur mon modèle "spécial", tout cela sur une très grand nombre d'époch pour voir si nous pouvons obtenir un score F1 proche de O.5 voire plus.
 
 ---
 
@@ -455,12 +478,69 @@ Cela nous promet de bonnes performances en le poussant jusqu'au bout.
 
 - **Seed** : `42`
 - **Config utilisée** : joindre un extrait de `configs/config.yaml` (sections pertinentes)
+
+    dataset
+
+    But : Définit le dataset Tiny-ImageNet et ses splits.
+    Utilisation : data_loading.get_dataloaders() lit les chemins train/val/test.
+    preprocess
+
+    But : Transformations fixes (normalisation, resize).
+    Utilisation : preprocessing.get_preprocess_transforms() applique à tous les splits.
+    augment / augment_final
+
+    But : Augmentations stochastiques (flip, crop, jitter).
+    Utilisation : augmentation.get_augmentation_transforms() → train uniquement.
+    model
+
+    But : Architecture ResNet (blocs, dropout, batch_norm).
+    Utilisation : model.build_model() + final_test pour grid A/B/Special.
+    grid_final
+
+    But : Hyperparams pour grid search finale (lr_high, wd_high...).
+    Utilisation : train.py boucle sur ces variantes vs base_model.
+    train
+
+    But : Hyperparams entraînement (batch_size, epochs, schedulers).
+    Utilisation : train() fonction principale + overfit_small().
+    optimizer (dans train)
+
+    But : Adam/SGD + lr/weight_decay/momentum.
+    Utilisation : model.get_optimizer(model, config).
+    scheduler (dans train)
+
+    But : Stratégie évolution LR (cosine, step...).
+    Utilisation : train() applique warmup_scheduler.step() + cosine_scheduler.
+    metrics
+
+    But : Liste métriques à tracker (accuracy, f1).
+    Utilisation : TensorBoard logs + early stopping sur F1 macro.
+    hparams / grid_search
+
+    But : Espace hyperparams pour mini-grid ou finder LR/WD.
+    Utilisation : --gridsearch ou --lrwdfinder dans train.py.
+    paths
+
+    But : Dossiers runs/artifacts pour TensorBoard + checkpoints.
+    Utilisation : SummaryWriter(log_dir) + EarlyStopping(path).
+    train_final / augment_final / model_final
+
+    But : Config unique pour run final (--final_run).
+    Utilisation : main() fusionne ces sections
+
 - **Commandes exactes** :
 
+
+
 ```bash
-# Exemple (remplacer par vos commandes effectives)
-python -m src.train --config configs/config.yaml --max_epochs 15
-python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/best.ckpt
+python -m src.train --config configs/config.yaml --gridsearch
+python -m src.train --config configs/config.yaml --perte_initiale
+python -m src.train --config configs/config.yaml --overfit_small
+python -m src.train --config configs/config.yaml
+python -m src.train --config configs/config.yaml --final_run
+python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/bestof_Modele_A.ckpt --model A
+python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/bestof_Modele_B.ckpt --model B
+python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/bestof_Special.ckpt --model Special
 ````
 
 * **Artifacts requis présents** :
@@ -475,6 +555,8 @@ python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/best.
 
 * PyTorch docs des modules utilisés (Conv2d, BatchNorm, ReLU, LSTM/GRU, transforms, etc.).
 * Lien dataset officiel (et/ou HuggingFace/torchvision/torchaudio).
+  [zh-plus/tiny-imagenet](https://huggingface.co/datasets/zh-plus/tiny-imagenet)
 * Toute ressource externe substantielle (une ligne par référence).
+  https://www.perplexity.ai/
 
 

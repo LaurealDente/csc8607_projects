@@ -3,9 +3,9 @@
 
 
 Exécution :
-    python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/bestof_Modele_A.ckpt --model A
-    python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/bestof_Modele_B.ckpt --model B  
-    python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/bestof_Special.ckpt --model Special
+python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/bestof_Modele_A.ckpt --model A
+python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/bestof_Modele_B.ckpt --model B  
+python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/bestof_Modele_Special.ckpt --model Special
 """
 
 import argparse
