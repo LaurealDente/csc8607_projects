@@ -29,9 +29,9 @@ if [ -f "requirements.txt" ]; then
     pip install -r requirements.txt
 fi
 
-python -m src.grid_search --config configs/config.yaml
 python -m src.train --config configs/config.yaml --perte_initiale --charge_datasets
 python -m src.train --config configs/config.yaml --overfit_small
+python -m src.grid_search --config configs/config.yaml
 python -m src.lr_finder --config configs/config.yaml
 python -m src.train --config configs/config.yaml
 python -m src.train --config configs/config.yaml --final_run
