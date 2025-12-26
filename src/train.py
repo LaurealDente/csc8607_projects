@@ -88,12 +88,11 @@ def overfitting_small(modele, config):
     print(f"Logs disponibles : {tensorboard_path}")
     writer.close()
 
-def perte_premier_batch(config:dict):
+def perte_premier_batch(config:dict, modele, train_loader):
     run_name = f"sanity_check_{time.strftime('%Y%m%d-%H%M%S')}"
     runs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), config["paths"]["runs_dir"])
     writer = SummaryWriter(log_dir=os.path.join(runs_dir, "sanity_check", run_name))
     
-    modele = model.build_model(config["perte_model"])
 
     criterion = nn.CrossEntropyLoss()
     device = torch.device(config["train"]["device"] if torch.cuda.is_available() else "cpu")
@@ -101,8 +100,6 @@ def perte_premier_batch(config:dict):
     modele.train()
 
 
-    aug_pipeline = augmentation.get_augmentation_transforms(config)
-    train_loader = data_loading.get_dataloaders("train", aug_pipeline, config)
 
     pbar = tqdm(train_loader, desc=f"Ep {1}/{1} [Train]", leave=False)
 
@@ -344,11 +341,14 @@ def main():
     base_config["train"]["seed"] = seed_to_use
     print(f"Seed fixée à : {seed_to_use}")
 
+    modele = model.build_model(base_config["perte_model"])
 
+    aug_pipeline = augmentation.get_augmentation_transforms(base_config)
+    train_loader = data_loading.get_dataloaders("train", aug_pipeline, base_config)
         
     # Tâche 1: Sanity Check Loss
     if args.perte_initiale:
-        perte_premier_batch(base_config)
+        perte_premier_batch(base_config, modele, train_loader)
 
     # Tâche 2: Overfit Small (Exclusif ou cumulatif selon besoin, ici exclusif souvent mieux)
     if args.overfit_small:
