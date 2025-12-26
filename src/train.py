@@ -99,14 +99,16 @@ def perte_premier_batch(config:dict):
     criterion = nn.CrossEntropyLoss()
     device = torch.device(config["train"]["device"] if torch.cuda.is_available() else "cpu")
     modele.to(device)
-    modele.train() # Mode train pour checker les gradients
+    modele.train()
 
 
     aug_pipeline = augmentation.get_augmentation_transforms(config)
     train_loader = data_loading.get_dataloaders("train", aug_pipeline, config)
 
+    pbar = tqdm(train_loader, desc=f"Ep {1}/{1} [Train]", leave=False)
+
     try:
-        first_batch_images, first_batch_labels = next(iter(train_loader))
+        first_batch_images, first_batch_labels = next(iter(pbar))
     except StopIteration:
         print("Erreur : Le DataLoader est vide.")
         return

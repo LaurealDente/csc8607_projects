@@ -32,6 +32,7 @@ perte_model:
     residual : true
     batch_norm : true
     activation : relu
+    epochs : 100
 
 augment:
   random_flip: true
