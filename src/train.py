@@ -374,14 +374,14 @@ def main():
         base_config["augment"].update(augment_cfg)
         
         # Liste des variantes à exécuter (1 seule en mode final)
-        variants = {"FinalModel": {}} 
+        variants = {"FinalModel": {"Special"}} 
     else:
         # On récupère les variantes définies dans model.final_test
         # Si pas de final_test, on fait juste une variante par défaut
         if "final_test" in base_config["model"]:
             variants = base_config["model"]["final_test"]
         else:
-            variants = {"Default": {}}
+            variants = {"Default": {"A", "B"}}
 
     # 4. Surcharge Arguments CLI (priorité sur le YAML)
     if args.max_epochs is not None:
