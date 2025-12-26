@@ -88,7 +88,7 @@ def overfitting_small(modele, config):
     print(f"Logs disponibles : {tensorboard_path}")
     writer.close()
 
-def perte_premier_batch(config:dict, modele, train_loader):
+def perte_premier_batch(config:dict, modele):
     run_name = f"sanity_check_{time.strftime('%Y%m%d-%H%M%S')}"
     runs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), config["paths"]["runs_dir"])
     writer = SummaryWriter(log_dir=os.path.join(runs_dir, "sanity_check", run_name))
