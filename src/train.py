@@ -394,6 +394,8 @@ def main():
     # 5. Boucle d'exécution sur les variantes (A, B, Special...)
     for variant_name, hparams in variants.items():
 
+        print(variant_name)
+
         if ((variant_name == "A" or variant_name == "B") and (not args.final_run) and (not args.perte_initiale) and (not args.overfit_small)) or (variant_name == "Special" and args.final_run):
             print(f"\n{'='*20} Traitement : {variant_name} {'='*20}")
             
