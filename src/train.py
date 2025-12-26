@@ -398,6 +398,7 @@ def main():
         # Tâche 1: Sanity Check Loss
         if args.perte_initiale:
             perte_premier_batch(modele, train_loader, current_config)
+            continue
         
         # Tâche 2: Overfit Small (Exclusif ou cumulatif selon besoin, ici exclusif souvent mieux)
         if args.overfit_small:
