@@ -191,7 +191,7 @@ def main():
 
 
     best_lr, best_wd, stable_window = lr_finder(
-        modele=model.build_model(config),
+        modele=model.build_model(config["basic_model"]),
         train_dataloader=train_loader_subset,
         criterion=nn.CrossEntropyLoss(),
         lr_list=learning_rates_to_test,
