@@ -352,7 +352,7 @@ def main():
     if args.charge_datasets:
         print("Enregistrement des données")
         # Preprocessing (Fixe)
-        preprocessing.get_preprocess_transforms(current_config)
+        preprocessing.get_preprocess_transforms(base_config)
         
     # Tâche 1: Sanity Check Loss
     if args.perte_initiale:
@@ -360,7 +360,7 @@ def main():
 
     # Tâche 2: Overfit Small (Exclusif ou cumulatif selon besoin, ici exclusif souvent mieux)
     if args.overfit_small:
-        overfitting_small(modele, current_config)
+        overfitting_small(modele, base_config)
 
     # 3. Sélection de la configuration (Normale ou Finale)
     if args.final_run:
