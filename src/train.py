@@ -342,6 +342,8 @@ def main():
     base_config["train"]["seed"] = seed_to_use
     print(f"Seed fixée à : {seed_to_use}")
 
+    data_loading.get_data(base_config)
+
     modele = model.build_model(base_config["perte_model"])
 
     aug_pipeline = augmentation.get_augmentation_transforms(base_config)

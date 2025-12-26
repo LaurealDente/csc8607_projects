@@ -94,6 +94,7 @@ def get_dataloaders(split: str, augmentation_pipeline, config: dict):  # ← spl
     Crée un DataLoader pour un split spécifique (train/val/test).
     """
     script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    
     data_path = os.path.join(script_dir, config["dataset"]["split"][split]["chemin"])
     
     
