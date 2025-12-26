@@ -336,92 +336,109 @@ def main():
     except FileNotFoundError:
         raise Exception(f"Fichier de configuration introuvable : {full_path}")
 
-    # 2. Gestion de la Seed (IMPORTANT: Le faire ici pour que ça s'applique partout)
+    # 2. Gestion de la Seed
     seed_to_use = args.seed if args.seed is not None else base_config["train"].get("seed", 42)
-    utils.set_seed(seed_to_use) # Supposant que vous avez utils.set_seed
+    utils.set_seed(seed_to_use)
     base_config["train"]["seed"] = seed_to_use
     print(f"Seed fixée à : {seed_to_use}")
 
-
+    # 3. Preprocessing (si demandé)
     if args.charge_datasets:
-
-        print("Chargement des données")
+        print("Chargement et régénération des données...")
         data_loading.get_data(base_config)
         preprocessing.get_preprocess_transforms(base_config)
 
-    modele = model.build_model(base_config["basic_model"])
-
-    aug_pipeline = augmentation.get_augmentation_transforms(base_config)
-    train_loader = data_loading.get_dataloaders("train", aug_pipeline, base_config)
+    # 4. Tâches préliminaires (Overfit / Sanity Check) qui n'ont pas besoin de variantes
+    if args.perte_initiale or args.overfit_small:
+        # On utilise le modèle de base pour ces tests
+        modele = model.build_model(base_config["basic_model"])
+        aug_pipeline = augmentation.get_augmentation_transforms(base_config)
         
-    # Tâche 1: Sanity Check Loss
-    if args.perte_initiale:
-        perte_premier_batch(base_config, modele, train_loader)
+        # Note: Pour overfit_small on recrée souvent un loader spécifique dans la fonction,
+        # mais on a besoin du train_loader pour perte_initiale
+        train_loader = data_loading.get_dataloaders("train", aug_pipeline, base_config)
 
-    # Tâche 2: Overfit Small (Exclusif ou cumulatif selon besoin, ici exclusif souvent mieux)
-    if args.overfit_small:
-        overfitting_small(modele, base_config)
-
-    # 3. Sélection de la configuration (Normale ou Finale)
-    if args.final_run:
-        train_cfg = base_config.get("train_final", base_config["train"])
-        model_cfg = base_config.get("model_final", base_config["model"])
-        augment_cfg = base_config.get("augment_final", base_config["augment"])
+        if args.perte_initiale:
+            perte_premier_batch(base_config, modele, train_loader)
         
-        # On remplace les sections principales par les sections finales
-        base_config["train"].update(train_cfg)
-        base_config["model"].update(model_cfg)
-        base_config["augment"].update(augment_cfg)
-        
-        # Liste des variantes à exécuter (1 seule en mode final)
-        variants = {"FinalModel": {"Special"}} 
-    else:
-        # On récupère les variantes définies dans model.final_test
-        # Si pas de final_test, on fait juste une variante par défaut
-        if "final_test" in base_config["model"]:
-            variants = base_config["model"]["final_test"]
-        else:
-            variants = {"Default": {"A", "B"}}
+        if args.overfit_small:
+            overfitting_small(modele, base_config)
+            
+        # Si on ne fait que ça, on s'arrête là
+        if args.overfit_small: 
+            return
 
-    # 4. Surcharge Arguments CLI (priorité sur le YAML)
-    if args.max_epochs is not None:
-        base_config["train"]["epochs"] = args.max_epochs
-    if args.max_steps is not None:
-        base_config["train"]["max_steps"] = args.max_steps
-
-
+    # 5. Préparation des Variantes pour l'Entraînement Complet
     
-    # 5. Boucle d'exécution sur les variantes (A, B, Special...)
-    for variant_name, hparams in variants.items():
+    # A. Récupération des définitions brutes depuis le YAML
+    raw_variants = base_config["model"].get("final_test", {})
+    if not raw_variants:
+        print("⚠️ Attention : Aucune variante trouvée dans 'model.final_test'. Utilisation de Default.")
+        raw_variants = {"Default": {}}
 
-        print(variant_name)
-
-        if ((variant_name == "A" or variant_name == "B") and (not args.final_run) and (not args.perte_initiale) and (not args.overfit_small)) or (variant_name == "Special" and args.final_run):
-            print(f"\n{'='*20} Traitement : {variant_name} {'='*20}")
+    # B. Logique de Filtrage : QUI doit tourner ?
+    variants_to_run = {}
+    
+    if args.final_run:
+        # Mode Final Run : On surcharge la config globale ET on ne lance QUE "Special"
+        print(">>> MODE FINAL RUN ACTIVÉ <<<")
+        
+        # 1. Mise à jour de la config de base avec les paramètres _final
+        base_config["train"].update(base_config.get("train_final", {}))
+        base_config["model"].update(base_config.get("model_final", {}))
+        base_config["augment"].update(base_config.get("augment_final", {}))
+        
+        # 2. On sélectionne uniquement la variante "Special" si elle existe
+        if "Special" in raw_variants:
+            variants_to_run["Special"] = raw_variants["Special"]
+        else:
+            # Fallback si "Special" n'est pas défini mais qu'on veut lancer le final
+            variants_to_run["FinalModel"] = {} 
             
-            # Copie profonde pour ne pas polluer les itérations suivantes
-            current_config = yaml.safe_load(yaml.dump(base_config))
-            
-            # Application des hyperparams spécifiques à la variante
-            if hparams:
-                for k, v in hparams.items():
-                    current_config["model"][k] = v
-            current_config["model"]["version_name"] = variant_name
+    else:
+        # Mode Normal (Dev) : On lance A et B (et on ignore Special)
+        targets = ["A", "B"]
+        for name in targets:
+            if name in raw_variants:
+                variants_to_run[name] = raw_variants[name]
+        
+        # Sécurité : Si A et B n'existent pas, on prend tout sauf Special
+        if not variants_to_run:
+            variants_to_run = {k: v for k, v in raw_variants.items() if k != "Special"}
 
-            # Modèle
-            modele = model.build_model(current_config)
+    print(f"Variantes sélectionnées pour exécution : {list(variants_to_run.keys())}")
 
-            # DataLoaders
-            aug_pipeline = augmentation.get_augmentation_transforms(current_config)
-            train_loader = data_loading.get_dataloaders("train", aug_pipeline, current_config)
-            
-            # Si on fait juste une perte initiale ou overfit, on n'a pas forcément besoin du val_loader tout de suite
-            val_loader = data_loading.get_dataloaders("val", None, current_config)
+    # 6. Boucle d'exécution
+    for variant_name, hparams in variants_to_run.items():
+        print(f"\n{'='*20} Traitement : {variant_name} {'='*20}")
 
-            # Tâche 3: Entraînement complet (si on n'est pas en overfit only)
-            # Note: Si perte_initiale était True, on continue quand même vers le train
-            if not args.overfit_small and not args.perte_initiale:
-                train(modele, train_loader, val_loader, current_config, variant_name=variant_name)
+        # Copie propre de la config de base (déjà patchée si final_run)
+        current_config = yaml.safe_load(yaml.dump(base_config))
+
+        # Surcharges CLI (priorité absolue)
+        if args.max_epochs is not None:
+            current_config["train"]["epochs"] = args.max_epochs
+        if args.max_steps is not None:
+            current_config["train"]["max_steps"] = args.max_steps
+
+        # Application des hyperparamètres spécifiques à la variante
+        # (Ces params écrasent ceux de model/model_final)
+        if hparams:
+            for k, v in hparams.items():
+                current_config["model"][k] = v
+        
+        current_config["model"]["version_name"] = variant_name
+
+        # Construction
+        modele = model.build_model(current_config)
+        aug_pipeline = augmentation.get_augmentation_transforms(current_config)
+
+        # Loaders
+        train_loader = data_loading.get_dataloaders("train", aug_pipeline, current_config)
+        val_loader = data_loading.get_dataloaders("val", None, current_config)
+
+        # Lancement de l'entraînement
+        train(modele, train_loader, val_loader, current_config, variant_name=variant_name)
 
 if __name__ == "__main__":
     main()
