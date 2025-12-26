@@ -3,7 +3,7 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd "$SCRIPT_DIR" || exit 1
 
-rm -rf runs results data artifacts
+rm -rf runs results/* data/* artifacts/*
 
 ENV_NAME="csc8607_env"
 
