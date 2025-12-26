@@ -343,6 +343,12 @@ def main():
     base_config["train"]["seed"] = seed_to_use
     print(f"Seed fixée à : {seed_to_use}")
 
+
+        
+    # Tâche 1: Sanity Check Loss
+    if args.perte_initiale:
+        perte_premier_batch(base_config)
+
     # 3. Sélection de la configuration (Normale ou Finale)
     if args.final_run:
         train_cfg = base_config.get("train_final", base_config["train"])
@@ -391,11 +397,6 @@ def main():
         modele = model.build_model(current_config)
 
         # Exécution des tâches demandées
-        
-        # Tâche 1: Sanity Check Loss
-        if args.perte_initiale:
-            perte_premier_batch(base_config)
-            continue
         
         # Tâche 2: Overfit Small (Exclusif ou cumulatif selon besoin, ici exclusif souvent mieux)
         if args.overfit_small:
