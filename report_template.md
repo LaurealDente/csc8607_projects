@@ -609,6 +609,6 @@ python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/besto
 * Lien dataset officiel (et/ou HuggingFace/torchvision/torchaudio).
   [zh-plus/tiny-imagenet](https://huggingface.co/datasets/zh-plus/tiny-imagenet)
 * Toute ressource externe substantielle (une ligne par référence).
-  https://www.perplexity.ai/
+  https://www.perplexity.ai/ afin d'aider lors de l'écriture du code.
 
 
