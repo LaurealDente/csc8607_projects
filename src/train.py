@@ -342,9 +342,10 @@ def main():
     base_config["train"]["seed"] = seed_to_use
     print(f"Seed fixée à : {seed_to_use}")
 
-    data_loading.get_data(base_config)
 
     if args.charge_datasets:
+
+        data_loading.get_data(base_config)
         print("Enregistrement des données")
         preprocessing.get_preprocess_transforms(base_config)
 
@@ -407,8 +408,6 @@ def main():
 
             # Modèle
             modele = model.build_model(current_config)
-
-            # Exécution des tâches demandées
 
             # DataLoaders
             aug_pipeline = augmentation.get_augmentation_transforms(current_config)
