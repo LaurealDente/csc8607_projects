@@ -380,9 +380,7 @@ def main():
     variants_to_run = {}
     
     if args.final_run:
-        # Mode Final Run : On surcharge la config globale ET on ne lance QUE "Special"
-        print(">>> MODE FINAL RUN ACTIVÉ <<<")
-        
+                
         # 1. Mise à jour de la config de base avec les paramètres _final
         base_config["train"].update(base_config.get("train_final", {}))
         base_config["model"].update(base_config.get("model_final", {}))
@@ -391,9 +389,6 @@ def main():
         # 2. On sélectionne uniquement la variante "Special" si elle existe
         if "Special" in raw_variants:
             variants_to_run["Special"] = raw_variants["Special"]
-        else:
-            # Fallback si "Special" n'est pas défini mais qu'on veut lancer le final
-            variants_to_run["FinalModel"] = {} 
             
     else:
         # Mode Normal (Dev) : On lance A et B (et on ignore Special)
@@ -411,6 +406,7 @@ def main():
     # 6. Boucle d'exécution
     for variant_name, hparams in variants_to_run.items():
         print(f"\n{'='*20} Traitement : {variant_name} {'='*20}")
+        print(f"hyperparamètres : {hparams}")
 
         # Copie propre de la config de base (déjà patchée si final_run)
         current_config = yaml.safe_load(yaml.dump(base_config))
