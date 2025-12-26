@@ -349,71 +349,72 @@ def main():
     if args.perte_initiale:
         perte_premier_batch(base_config)
 
-    # 3. Sélection de la configuration (Normale ou Finale)
-    if args.final_run:
-        train_cfg = base_config.get("train_final", base_config["train"])
-        model_cfg = base_config.get("model_final", base_config["model"])
-        augment_cfg = base_config.get("augment_final", base_config["augment"])
-        
-        # On remplace les sections principales par les sections finales
-        base_config["train"].update(train_cfg)
-        base_config["model"].update(model_cfg)
-        base_config["augment"].update(augment_cfg)
-        
-        # Liste des variantes à exécuter (1 seule en mode final)
-        variants = {"FinalModel": {}} 
-    else:
-        # On récupère les variantes définies dans model.final_test
-        # Si pas de final_test, on fait juste une variante par défaut
-        if "final_test" in base_config["model"]:
-            variants = base_config["model"]["final_test"]
+    else :
+        # 3. Sélection de la configuration (Normale ou Finale)
+        if args.final_run:
+            train_cfg = base_config.get("train_final", base_config["train"])
+            model_cfg = base_config.get("model_final", base_config["model"])
+            augment_cfg = base_config.get("augment_final", base_config["augment"])
+            
+            # On remplace les sections principales par les sections finales
+            base_config["train"].update(train_cfg)
+            base_config["model"].update(model_cfg)
+            base_config["augment"].update(augment_cfg)
+            
+            # Liste des variantes à exécuter (1 seule en mode final)
+            variants = {"FinalModel": {}} 
         else:
-            variants = {"Default": {}}
+            # On récupère les variantes définies dans model.final_test
+            # Si pas de final_test, on fait juste une variante par défaut
+            if "final_test" in base_config["model"]:
+                variants = base_config["model"]["final_test"]
+            else:
+                variants = {"Default": {}}
 
-    # 4. Surcharge Arguments CLI (priorité sur le YAML)
-    if args.max_epochs is not None:
-        base_config["train"]["epochs"] = args.max_epochs
-    if args.max_steps is not None:
-        base_config["train"]["max_steps"] = args.max_steps
-    
-    # 5. Boucle d'exécution sur les variantes (A, B, Special...)
-    for variant_name, hparams in variants.items():
-        print(f"\n{'='*20} Traitement : {variant_name} {'='*20}")
+        # 4. Surcharge Arguments CLI (priorité sur le YAML)
+        if args.max_epochs is not None:
+            base_config["train"]["epochs"] = args.max_epochs
+        if args.max_steps is not None:
+            base_config["train"]["max_steps"] = args.max_steps
         
-        # Copie profonde pour ne pas polluer les itérations suivantes
-        current_config = yaml.safe_load(yaml.dump(base_config))
-        
-        # Application des hyperparams spécifiques à la variante
-        if hparams:
-            for k, v in hparams.items():
-                current_config["model"][k] = v
-        current_config["model"]["version_name"] = variant_name
-        
-        
-        # Preprocessing (Fixe)
-        preprocessing.get_preprocess_transforms(current_config)
+        # 5. Boucle d'exécution sur les variantes (A, B, Special...)
+        for variant_name, hparams in variants.items():
+            print(f"\n{'='*20} Traitement : {variant_name} {'='*20}")
+            
+            # Copie profonde pour ne pas polluer les itérations suivantes
+            current_config = yaml.safe_load(yaml.dump(base_config))
+            
+            # Application des hyperparams spécifiques à la variante
+            if hparams:
+                for k, v in hparams.items():
+                    current_config["model"][k] = v
+            current_config["model"]["version_name"] = variant_name
+            
+            
+            # Preprocessing (Fixe)
+            preprocessing.get_preprocess_transforms(current_config)
 
-        # Modèle
-        modele = model.build_model(current_config)
+            # Modèle
+            modele = model.build_model(current_config)
 
-        # Exécution des tâches demandées
-        
-        # Tâche 2: Overfit Small (Exclusif ou cumulatif selon besoin, ici exclusif souvent mieux)
-        if args.overfit_small:
-            overfitting_small(modele, current_config)
-            continue # On passe à la variante suivante, pas de train complet en mode overfit
+            # Exécution des tâches demandées
+            
+            # Tâche 2: Overfit Small (Exclusif ou cumulatif selon besoin, ici exclusif souvent mieux)
+            if args.overfit_small:
+                overfitting_small(modele, current_config)
+                continue # On passe à la variante suivante, pas de train complet en mode overfit
 
-        # DataLoaders
-        aug_pipeline = augmentation.get_augmentation_transforms(current_config)
-        train_loader = data_loading.get_dataloaders("train", aug_pipeline, current_config)
-        
-        # Si on fait juste une perte initiale ou overfit, on n'a pas forcément besoin du val_loader tout de suite
-        val_loader = data_loading.get_dataloaders("val", None, current_config)
+            # DataLoaders
+            aug_pipeline = augmentation.get_augmentation_transforms(current_config)
+            train_loader = data_loading.get_dataloaders("train", aug_pipeline, current_config)
+            
+            # Si on fait juste une perte initiale ou overfit, on n'a pas forcément besoin du val_loader tout de suite
+            val_loader = data_loading.get_dataloaders("val", None, current_config)
 
-        # Tâche 3: Entraînement complet (si on n'est pas en overfit only)
-        # Note: Si perte_initiale était True, on continue quand même vers le train
-        if not args.overfit_small and not args.perte_initiale:
-            train(modele, train_loader, val_loader, current_config, variant_name=variant_name)
+            # Tâche 3: Entraînement complet (si on n'est pas en overfit only)
+            # Note: Si perte_initiale était True, on continue quand même vers le train
+            if not args.overfit_small and not args.perte_initiale:
+                train(modele, train_loader, val_loader, current_config, variant_name=variant_name)
 
 if __name__ == "__main__":
     main()
