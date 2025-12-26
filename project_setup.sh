@@ -30,11 +30,11 @@ if [ -f "requirements.txt" ]; then
 fi
 
 python -m src.train --config configs/config.yaml --perte_initiale --charge_datasets
-python -m src.train --config configs/config.yaml --overfit_small
+python -m src.train --config configs/config.yaml --overfit_small --charge_datasets
 python -m src.grid_search --config configs/config.yaml
 python -m src.lr_finder --config configs/config.yaml
-python -m src.train --config configs/config.yaml
-python -m src.train --config configs/config.yaml --final_run
+python -m src.train --config configs/config.yaml --charge_datasets
+python -m src.train --config configs/config.yaml --final_run --charge_datasets
 
 if [ -f "artifacts/best_of_A.ckpt" ]; then
     python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/best_of_A.ckpt --model A
