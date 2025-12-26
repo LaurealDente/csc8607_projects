@@ -91,14 +91,12 @@ def get_data(config: dict):
 
 def get_dataloaders(split: str, augmentation_pipeline, config: dict):  # ← split au lieu de dataset
     """
-    Crée UN DataLoader pour un split spécifique (train/val/test).
+    Crée un DataLoader pour un split spécifique (train/val/test).
     """
     script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    
-    # Chemin du split demandé
     data_path = os.path.join(script_dir, config["dataset"]["split"][split]["chemin"])
     
-    # Transform = augmentation_pipeline SI train, sinon None
+    
     transform = augmentation_pipeline if split == "train" else None
     
     data = augmentation.AugmentationDataset(data_path=data_path, transform=transform)
@@ -106,7 +104,7 @@ def get_dataloaders(split: str, augmentation_pipeline, config: dict):  # ← spl
     data_loader = DataLoader(
         data, 
         batch_size=config["train"]["batch_size"], 
-        shuffle=(split == "train"),  # ← shuffle UNIQUEMENT train
+        shuffle=(split == "train"),
         num_workers=config["dataset"]["num_workers"]
     )
     return data_loader

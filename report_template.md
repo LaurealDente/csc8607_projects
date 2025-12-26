@@ -465,7 +465,7 @@ Cela nous promet de bonnes performances en le poussant jusqu'au bout.
 **M9.** Donnez les **résultats test** et comparez-les à la validation (écart raisonnable ? surapprentissage probable ?).
 
 
-En comparant le score F1, nous constatons une amélioration de la performance sur la validation par rapport à la performance sur le test. (0.3396). L'écart est donc le bien venu dans ce contexte le modèle généralise correctement et ne sur-apprend pas sur nos datasets d'entrainement.
+En comparant le score F1, nous constatons une amélioration de la performance sur le test par rapport à la performance sur la validation. (0.3396). L'écart est donc le bien venu dans ce contexte le modèle généralise correctement et ne sur-apprend pas sur nos datasets d'entrainement.
 
 ---
 
