@@ -324,16 +324,20 @@ Avec ce classement des meilleurs résultats lors du grid search. Nous voyons cla
 Vert Modele A
 Orange Modele B
 
-Train :
+**Train :**
+
 ![alt text](images/image3.png)
 ![alt text](images/image4.png)
 ![alt text](images/image5.png)
 
-LR : 
+**LR :** 
+
 ![alt text](images/image6.png)
+
 Utilisation de Cosine
 
-Val :
+**Val :**
+
 ![alt text](images/image7.png)
 ![alt text](images/image8.png)
 ![alt text](images/image9.png)
@@ -367,7 +371,7 @@ Les modèles restent stables, l'apprentissage se déroule sans problème et les 
 **M7.** Trois **comparaisons** commentées (une phrase chacune) : LR, weight decay, hyperparamètres modèle — ce que vous attendiez vs. ce que vous observez.
 
 Baseline :
-  Pour cette comparaison, j'ai tout d'abord fait tourné le modèle initial afin d'avoir un élément de comparaison (run sans warmup et scheduler).
+  Pour cette comparaison, j'ai tout d'abord fait apprendre le modèle initial afin d'avoir un élément de comparaison (run sans warmup et scheduler).
   On obtient un score F1 pique à 0.266152.
 
   ![alt text](images/image10.png)
@@ -415,7 +419,6 @@ Dropout haut :
 | dropout_high        | 97    |       | 0.3     | 0.0001 | 0.0001 | 2.2954     | 43.45%    | 0.4214   | 3.2751   | 26.73%  | 0.2502 |
 | lr_high             | 41    |       | 0.1     | 0.0005 | 0.0001 | 2.1792     | 44.92%    | 0.4371   | 3.6431   | 21.80%  | 0.2040 |
 | wd_high             | 57    |       | 0.1     | 0.0001 | 0.0010 | 3.4079     | 24.65%    | 0.2132   | 3.6049   | 21.23%  | 0.1827 |
-
 
 ---
 
@@ -479,58 +482,107 @@ En comparant le score F1, nous constatons une amélioration de la performance su
 - **Seed** : `42`
 - **Config utilisée** : joindre un extrait de `configs/config.yaml` (sections pertinentes)
 
-    dataset
-
+    ```yaml
+      dataset
+    ```
     But : Définit le dataset Tiny-ImageNet et ses splits.
     Utilisation : data_loading.get_dataloaders() lit les chemins train/val/test.
     preprocess
+
+    ```yaml
+      preprocess
+    ```
 
     But : Transformations fixes (normalisation, resize).
     Utilisation : preprocessing.get_preprocess_transforms() applique à tous les splits.
     augment / augment_final
 
+    ```yaml
+      augment
+    ```
+
     But : Augmentations stochastiques (flip, crop, jitter).
     Utilisation : augmentation.get_augmentation_transforms() → train uniquement.
     model
+
+    ```yaml
+      model
+    ```
 
     But : Architecture ResNet (blocs, dropout, batch_norm).
     Utilisation : model.build_model() + final_test pour grid A/B/Special.
     grid_final
 
+    ```yaml
+      grid_final
+    ```
+
     But : Hyperparams pour grid search finale (lr_high, wd_high...).
     Utilisation : train.py boucle sur ces variantes vs base_model.
     train
+
+    ```yaml
+      train
+    ```
 
     But : Hyperparams entraînement (batch_size, epochs, schedulers).
     Utilisation : train() fonction principale + overfit_small().
     optimizer (dans train)
 
+    ```yaml
+      metrics
+    ```
+
     But : Adam/SGD + lr/weight_decay/momentum.
     Utilisation : model.get_optimizer(model, config).
     scheduler (dans train)
+
+    ```yaml
+      hparams
+    ```
 
     But : Stratégie évolution LR (cosine, step...).
     Utilisation : train() applique warmup_scheduler.step() + cosine_scheduler.
     metrics
 
+    ```yaml
+      metrics
+    ```
+
     But : Liste métriques à tracker (accuracy, f1).
     Utilisation : TensorBoard logs + early stopping sur F1 macro.
     hparams / grid_search
+
+    ```yaml
+      grid_search
+    ```
 
     But : Espace hyperparams pour mini-grid ou finder LR/WD.
     Utilisation : --gridsearch ou --lrwdfinder dans train.py.
     paths
 
+    ```yaml
+      paths
+    ```
+
     But : Dossiers runs/artifacts pour TensorBoard + checkpoints.
     Utilisation : SummaryWriter(log_dir) + EarlyStopping(path).
     train_final / augment_final / model_final
 
+    ```yaml
+      augment_final
+    ```
+
     But : Config unique pour run final (--final_run).
-    Utilisation : main() fusionne ces sections
+    Utilisation : train_final avec le flag
+
+    ```yaml
+    model_final
+    ```
+    But : Config du model final
+    Utilisation : train_final avec le flag
 
 - **Commandes exactes** :
-
-
 
 ```bash
 python -m src.train --config configs/config.yaml --gridsearch
