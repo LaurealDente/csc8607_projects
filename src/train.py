@@ -400,8 +400,7 @@ def main():
         # Sécurité : Si A et B n'existent pas, on prend tout sauf Special
         if not variants_to_run:
             variants_to_run = {k: v for k, v in raw_variants.items() if k != "Special"}
-
-    print(f"Variantes sélectionnées pour exécution : {list(variants_to_run.keys())}")
+            
 
     # 6. Boucle d'exécution
     for variant_name, hparams in variants_to_run.items():
