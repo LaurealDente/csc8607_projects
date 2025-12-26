@@ -18,7 +18,7 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, LinearLR
 from sklearn.metrics import f1_score
 
 def overfitting_small(modele, config):
-    print("\n>>> Démarrage du mode OVERFIT SMALL...")
+    
     optimizer = model.get_optimizer(modele, config)
     criterion = nn.CrossEntropyLoss()
 
@@ -89,7 +89,6 @@ def overfitting_small(modele, config):
     writer.close()
 
 def perte_premier_batch(config:dict):
-    print("\n>>> Vérification PERTE INITIALE...")
     run_name = f"sanity_check_{time.strftime('%Y%m%d-%H%M%S')}"
     runs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), config["paths"]["runs_dir"])
     writer = SummaryWriter(log_dir=os.path.join(runs_dir, "sanity_check", run_name))
@@ -202,7 +201,7 @@ def train(modele, train_loader, val_loader, config, variant_name="default"):
 
     max_steps = config["train"].get("max_steps", None)
 
-    print(f"\n>>> Démarrage TRAIN : {run_name}")
+
     print(f"Device: {device} | Epochs: {epochs} | Patience: {patience}")
 
     global_step = 0

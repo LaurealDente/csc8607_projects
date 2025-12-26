@@ -25,13 +25,14 @@ preprocess:
   text_tokenizer: null
 
 perte_model:
-  residual_blocks : [3,3,3]
-  dropout : 0.1
-  num_classes : 200
-  residual : true
-  batch_norm : true
-  activation : relu
-  epochs : 100
+  model :
+    residual_blocks : [3,3,3]
+    dropout : 0.1
+    num_classes : 200
+    residual : true
+    batch_norm : true
+    activation : relu
+    epochs : 100
 
 augment:
   random_flip: true
