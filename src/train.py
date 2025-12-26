@@ -99,6 +99,9 @@ def perte_premier_batch(config:dict, modele, train_loader):
     modele.train()
 
 
+    aug_pipeline = augmentation.get_augmentation_transforms(config)
+    train_loader = data_loading.get_dataloaders("train", aug_pipeline, config)
+
     pbar = tqdm(train_loader, desc=f"Ep {1}/{1} [Train]", leave=False)
 
     try:
@@ -340,13 +343,10 @@ def main():
     print(f"Seed fixée à : {seed_to_use}")
     
     modele = model.build_model(base_config["perte_model"])
-
-    aug_pipeline = augmentation.get_augmentation_transforms(base_config)
-    train_loader = data_loading.get_dataloaders("train", aug_pipeline, base_config)
         
     # Tâche 1: Sanity Check Loss
     if args.perte_initiale:
-        perte_premier_batch(base_config, modele, train_loader)
+        perte_premier_batch(base_config, modele)
 
     # Tâche 2: Overfit Small (Exclusif ou cumulatif selon besoin, ici exclusif souvent mieux)
     if args.overfit_small:
