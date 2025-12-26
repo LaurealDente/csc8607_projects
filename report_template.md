@@ -585,7 +585,7 @@ En comparant le score F1, nous constatons une amélioration de la performance su
 - **Commandes exactes** :
 
 ```bash
-python -m src.train --config configs/config.yaml --gridsearch
+python -m src.grid_search --config configs/config.yaml
 python -m src.train --config configs/config.yaml --perte_initiale
 python -m src.train --config configs/config.yaml --overfit_small
 python -m src.train --config configs/config.yaml
