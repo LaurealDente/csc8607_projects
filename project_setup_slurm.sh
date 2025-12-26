@@ -59,7 +59,7 @@ echo ">>> Lancement des tâches parallèles..."
 
 (
     echo "   [Overfit Test] Démarré..."
-    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --overfit_small --charge_datasets"
+    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --overfit_small"
     echo "   [Overfit Test] Terminé."
 ) &
 
@@ -71,7 +71,7 @@ echo ">>> Lancement des tâches parallèles..."
 
 (
     echo "   [Train Standard A/B] Démarré..."
-    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --charge_datasets"
+    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml"
     
     echo "   [Eval Standard A/B] Démarrée..."
     salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && \
@@ -82,7 +82,7 @@ echo ">>> Lancement des tâches parallèles..."
 
 (
     echo "   [Train Final Special] Démarré..."
-    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --final_run --charge_datasets"
+    salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.train --config configs/config.yaml --final_run"
     
     echo "   [Eval Final Special] Démarrée..."
     salloc $SLURM_OPTS bash -c "$ACTIVATE_CMD && python -m src.evaluate --config configs/config.yaml --checkpoint artifacts/best_of_Special.ckpt --model Special"
