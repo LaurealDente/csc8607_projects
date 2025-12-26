@@ -50,7 +50,7 @@ def overfitting_small(modele, config):
     )
 
     print(f"Taille du sous-ensemble : {subset_size} exemples.")
-    print(f"Hyperparamètres : Blocks={config['model']['residual_blocks']}, Dropout={config['model']['dropout']}")
+    print(f"Hyperparamètres : Blocks={config["basic_model"]['model']['residual_blocks']}, Dropout={config['model']['dropout']}")
     
     # Overfit epochs
     n_epochs = config["train"].get("overfit_epochs", 50) 
@@ -360,7 +360,7 @@ def main():
 
     # Tâche 2: Overfit Small (Exclusif ou cumulatif selon besoin, ici exclusif souvent mieux)
     if args.overfit_small:
-        overfitting_small(modele, base_config["basic_model"])
+        overfitting_small(modele, base_config)
 
     # 3. Sélection de la configuration (Normale ou Finale)
     if args.final_run:
