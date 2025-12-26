@@ -407,7 +407,7 @@ def main():
 
         # Tâche 3: Entraînement complet (si on n'est pas en overfit only)
         # Note: Si perte_initiale était True, on continue quand même vers le train
-        if not args.overfit_small:
+        if not args.overfit_small and not args.perte_initiale:
             train(modele, train_loader, val_loader, current_config, variant_name=variant_name)
 
 if __name__ == "__main__":
