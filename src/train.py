@@ -345,7 +345,6 @@ def main():
 
     # 3. Sélection de la configuration (Normale ou Finale)
     if args.final_run:
-        print(">>> MODE : FINAL RUN (train_final, model_final)")
         train_cfg = base_config.get("train_final", base_config["train"])
         model_cfg = base_config.get("model_final", base_config["model"])
         augment_cfg = base_config.get("augment_final", base_config["augment"])
@@ -358,7 +357,6 @@ def main():
         # Liste des variantes à exécuter (1 seule en mode final)
         variants = {"FinalModel": {}} 
     else:
-        print(">>> MODE : CLASSIQUE (Grid Search manuelle via final_test)")
         # On récupère les variantes définies dans model.final_test
         # Si pas de final_test, on fait juste une variante par défaut
         if "final_test" in base_config["model"]:
