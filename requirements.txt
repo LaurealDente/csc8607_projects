@@ -11,3 +11,4 @@ matplotlib
 tqdm
 pandas
 scikit-learn
+tabulate

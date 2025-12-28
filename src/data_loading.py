@@ -144,6 +144,7 @@ def create_stratified_subset_loader_manual(
         subset_dataset,
         batch_size=batch_size,
         shuffle=True,
+        worker_init_fn=config["train"]["seed"],
         num_workers=num_workers
     )
     
